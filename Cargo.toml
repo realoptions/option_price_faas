@@ -1,6 +1,6 @@
 [package]
 name = "pricer"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Daniel Stahl <danstahl1138@gmail.com>"]
 homepage = "https://github.com/phillyfan1138/option_price_faas"
 repository = "https://github.com/phillyfan1138/option_price_faas"
@@ -11,15 +11,15 @@ autobins = false
 edition = "2018"
 
 [dependencies]
-fang_oost_option = "0.27"
-fang_oost = "0.13.7"
+fang_oost_option = "0.28"
+fang_oost = "0.14.0"
 serde = "^1"
 serde_json = "^1"
 serde_derive = "^1"
 cf_dist_utils = "0.8.0"
 rayon = "1.0.1"
 black_scholes = "0.5.0"
-cf_functions = "0.10"
+cf_functions = "0.14"
 num-complex = "0.2"
 lambda_http = { git = "https://github.com/phillyfan1138/aws-lambda-rust-runtime", rev = "b7e5da5" }
 lambda_runtime = { git = "https://github.com/phillyfan1138/aws-lambda-rust-runtime", rev = "b7e5da5" }

@@ -97,10 +97,10 @@ fn get_cgmy_cf(
         eta_v,
         rho,
     } = cf_parameters;
-    let cf_inst = cf_functions::cgmy_time_change_cf(
+    let cf_inst = cf_functions::cgmy::cgmy_time_change_cf(
         maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, *rho,
     );
-    let vol = cf_functions::cgmy_diffusion_vol(*sigma, *c, *g, *m, *y, maturity);
+    let vol = cf_functions::cgmy::cgmy_diffusion_vol(*sigma, *c, *g, *m, *y, maturity);
     Ok((cf_inst, vol))
 }
 fn get_merton_cf(
@@ -122,10 +122,10 @@ fn get_merton_cf(
         eta_v,
         rho,
     } = cf_parameters;
-    let cf_inst = cf_functions::merton_time_change_cf(
+    let cf_inst = cf_functions::merton::merton_time_change_cf(
         maturity, rate, *lambda, *mu_l, *sig_l, *sigma, *v0, *speed, *eta_v, *rho,
     );
-    let vol = cf_functions::jump_diffusion_vol(*sigma, *lambda, *mu_l, *sig_l, maturity);
+    let vol = cf_functions::merton::jump_diffusion_vol(*sigma, *lambda, *mu_l, *sig_l, maturity);
     Ok((cf_inst, vol))
 }
 fn get_heston_cf(
@@ -144,7 +144,7 @@ fn get_heston_cf(
         eta_v,
         rho,
     } = cf_parameters;
-    let cf_inst = cf_functions::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho);
+    let cf_inst = cf_functions::gauss::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho);
     Ok((cf_inst, *sigma))
 }
 
@@ -520,7 +520,7 @@ mod tests {
                 uniform.sample(&mut rng_seed),
             );
 
-            let inst_cf = cf_functions::merton_time_change_cf(
+            let inst_cf = cf_functions::merton::merton_time_change_cf(
                 maturity, rate, lambda_sim, mu_l_sim, sig_l_sim, sigma_sim, v0_sim, speed_sim,
                 eta_v_sim, rho_sim,
             );
@@ -561,7 +561,8 @@ mod tests {
         let speed = 0.87;
         let v0 = 1.2104;
 
-        let x_max = cf_functions::jump_diffusion_vol(sigma, lambda, mu_l, sig_l, maturity) * 10.0;
+        let x_max =
+            cf_functions::merton::jump_diffusion_vol(sigma, lambda, mu_l, sig_l, maturity) * 10.0;
         let strikes = vec![
             asset * (x_max.exp()),
             85.0,
@@ -611,7 +612,7 @@ mod tests {
             340.0,
             asset * ((-x_max).exp()),
         ];
-        let inst_cf = cf_functions::merton_time_change_cf(
+        let inst_cf = cf_functions::merton::merton_time_change_cf(
             maturity, rate, lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho,
         );
         let num_u = 256;
