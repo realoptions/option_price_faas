@@ -1,1 +1,0 @@
-{"type":"object","properties":{"value_at_risk":{"type":"number"},"expected_shortfall":{"type":"number"}},"required":["value_at_risk","expected_shortfall"],"additionalProperties":false}

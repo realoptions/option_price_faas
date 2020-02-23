@@ -1,1 +1,0 @@
-{"type":"array","items":{"type":"object","properties":{"value":{"type":"number"},"at_point":{"type":"number"}},"required":["value","at_point"],"additionalProperties":false}}

@@ -1,0 +1,2300 @@
+swagger: '2.0'
+
+info:
+  title: Option Pricing and Sensitivities
+  description: Option pricing using advanced models such as Heston, Extended Merton, and Extended CGMY.
+  version: 2.0.0
+host: api2.finside.org
+basePath: "/v2"
+schemes:
+  - https
+produces:
+  - application/json
+x-google-backend:
+  address: https://realoptions-lnmfgwrxtq-uc.a.run.app 
+  path_translation: APPEND_PATH_TO_ADDRESS
+
+securityDefinitions:
+  firebase:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/finside"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "finside"
+  JWT:  
+    type: apiKey  
+    in: query  
+    name: access_token  
+
+security:
+  - firebase: []
+  - JWT: []
+  
+  
+
+paths:
+  "/cgmy/calculator/{optionType}/{sensitivity}":
+    post:
+      operationId: computeCGMYOptions
+      summary: Calculator for computing option prices and sensitivities for a CGMY
+        process
+      description: Computes European option prices, implied volatilities, and sensitivities
+        at every strike price for an asset that follows an extended CGMY process
+      responses:
+        '200':
+          description: Option prices and sensitivites
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+                iv:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: 25
+              iv: 0.7312156946854926
+              value: 30.73189415242812
+            - at_point: 30.555555555555557
+              iv: 0.7070328045094586
+              value: 27.06609369520123
+            - at_point: 36.111111111111114
+              iv: 0.6889455378156619
+              value: 23.71906796713607
+            - at_point: 41.666666666666664
+              iv: 0.6758989081083138
+              value: 20.71561014936256
+            - at_point: 47.22222222222222
+              iv: 0.6671081971453771
+              value: 18.06531306975112
+            - at_point: 52.77777777777778
+              iv: 0.6618834719717683
+              value: 15.761331548648052
+            - at_point: 58.33333333333333
+              iv: 0.6595725703797433
+              value: 13.782150082392505
+            - at_point: 63.888888888888886
+              iv: 0.6595640524541427
+              value: 12.095889044169873
+            - at_point: 69.44444444444444
+              iv: 0.6613105691650758
+              value: 10.66556420465804
+            - at_point: 75
+              iv: 0.6643480831590762
+              value: 9.453686180803771
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - name: optionType
+        in: path
+        required: true
+        description: The type of option.
+        enum:
+        - call
+        - put
+        type: string
+      - name: sensitivity
+        in: path
+        required: true
+        description: Prices or Greeks
+        enum:
+        - price
+        - delta
+        - gamma
+        - theta
+        type: string
+      - name: include_implied_volatility
+        in: query
+        description: Whether to include implied volatility in the results.  Defaults
+          to 'false'.  Only applicable for sensitivity='price'
+        type: boolean
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            asset:
+              type: number
+              example: 50
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                c:
+                  type: number
+                  example: 0.3
+                g:
+                  type: number
+                  example: 5
+                m:
+                  type: number
+                  example: 5
+                y:
+                  type: number
+                  example: 1.2
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            strikes:
+              type: array
+              items:
+                type: number
+              example:
+              - 50
+          required:
+          - num_u
+          - rate
+          - maturity
+          - asset
+          - cf_parameters
+          - strikes
+          additionalProperties: false
+  "/heston/calculator/{optionType}/{sensitivity}":
+    post:
+      operationId: computeHestonOptions
+      summary: Calculator for computing option prices and sensitivities for a Heston
+        model
+      description: Computes European option prices, implied volatilities, and sensitivities
+        at every strike price for an asset that follows a Heston process
+      responses:
+        '200':
+          description: Option prices and sensitivites
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+                iv:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: 25
+              iv: 0.7312156946854926
+              value: 30.73189415242812
+            - at_point: 30.555555555555557
+              iv: 0.7070328045094586
+              value: 27.06609369520123
+            - at_point: 36.111111111111114
+              iv: 0.6889455378156619
+              value: 23.71906796713607
+            - at_point: 41.666666666666664
+              iv: 0.6758989081083138
+              value: 20.71561014936256
+            - at_point: 47.22222222222222
+              iv: 0.6671081971453771
+              value: 18.06531306975112
+            - at_point: 52.77777777777778
+              iv: 0.6618834719717683
+              value: 15.761331548648052
+            - at_point: 58.33333333333333
+              iv: 0.6595725703797433
+              value: 13.782150082392505
+            - at_point: 63.888888888888886
+              iv: 0.6595640524541427
+              value: 12.095889044169873
+            - at_point: 69.44444444444444
+              iv: 0.6613105691650758
+              value: 10.66556420465804
+            - at_point: 75
+              iv: 0.6643480831590762
+              value: 9.453686180803771
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - name: optionType
+        in: path
+        required: true
+        description: The type of option.
+        enum:
+        - call
+        - put
+        type: string
+      - name: sensitivity
+        in: path
+        required: true
+        description: Prices or Greeks
+        enum:
+        - price
+        - delta
+        - gamma
+        - theta
+        type: string
+      - name: include_implied_volatility
+        in: query
+        description: Whether to include implied volatility in the results.  Defaults
+          to 'false'.  Only applicable for sensitivity='price'
+        type: boolean
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            asset:
+              type: number
+              example: 50
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.25
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            strikes:
+              type: array
+              items:
+                type: number
+              example:
+              - 50
+          required:
+          - num_u
+          - rate
+          - maturity
+          - asset
+          - cf_parameters
+          - strikes
+          additionalProperties: false
+  "/merton/calculator/{optionType}/{sensitivity}":
+    post:
+      operationId: computeMertonOptions
+      summary: Calculator for computing option prices and sensitivities for a Merton
+        model
+      description: Computes European option prices, implied volatilities, and sensitivities
+        at every strike price for an asset that follows an extended Merton process
+      responses:
+        '200':
+          description: Option prices and sensitivites
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+                iv:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: 25
+              iv: 0.7312156946854926
+              value: 30.73189415242812
+            - at_point: 30.555555555555557
+              iv: 0.7070328045094586
+              value: 27.06609369520123
+            - at_point: 36.111111111111114
+              iv: 0.6889455378156619
+              value: 23.71906796713607
+            - at_point: 41.666666666666664
+              iv: 0.6758989081083138
+              value: 20.71561014936256
+            - at_point: 47.22222222222222
+              iv: 0.6671081971453771
+              value: 18.06531306975112
+            - at_point: 52.77777777777778
+              iv: 0.6618834719717683
+              value: 15.761331548648052
+            - at_point: 58.33333333333333
+              iv: 0.6595725703797433
+              value: 13.782150082392505
+            - at_point: 63.888888888888886
+              iv: 0.6595640524541427
+              value: 12.095889044169873
+            - at_point: 69.44444444444444
+              iv: 0.6613105691650758
+              value: 10.66556420465804
+            - at_point: 75
+              iv: 0.6643480831590762
+              value: 9.453686180803771
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - name: optionType
+        in: path
+        required: true
+        description: The type of option.
+        enum:
+        - call
+        - put
+        type: string
+      - name: sensitivity
+        in: path
+        required: true
+        description: Prices or Greeks
+        enum:
+        - price
+        - delta
+        - gamma
+        - theta
+        type: string
+      - name: include_implied_volatility
+        in: query
+        description: Whether to include implied volatility in the results.  Defaults
+          to 'false'.  Only applicable for sensitivity='price'
+        type: boolean
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            asset:
+              type: number
+              example: 50
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                mu_l:
+                  type: number
+                  example: -0.05
+                sig_l:
+                  type: number
+                  example: 0.2
+                lambda:
+                  type: number
+                  example: 1
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            strikes:
+              type: array
+              items:
+                type: number
+              example:
+              - 50
+          required:
+          - num_u
+          - rate
+          - maturity
+          - asset
+          - cf_parameters
+          - strikes
+          additionalProperties: false
+  "/cgmy/density":
+    post:
+      operationId: computeCGMYDensity
+      summary: Calculator for computing probability densities for CGMY process
+      description: Computes probability density for an extended CGMY process
+      responses:
+        '200':
+          description: Density
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: -2.5
+              value: 0.023577580212142506
+            - at_point: -2.4606299212598426
+              value: 0.023635902109854987
+            - at_point: -2.421259842519685
+              value: 0.023811135771083996
+            - at_point: -2.3818897637795278
+              value: 0.024104086295496534
+            - at_point: -2.34251968503937
+              value: 0.0245160995072489
+            - at_point: -2.3031496062992125
+              value: 0.02504906796565831
+            - at_point: -2.263779527559055
+              value: 0.025705439427417362
+            - at_point: -2.2244094488188977
+              value: 0.026488227807769143
+            - at_point: -2.1850393700787403
+              value: 0.02740102670177468
+            - at_point: -2.145669291338583
+              value: 0.028448025540565573
+            - at_point: -2.106299212598425
+              value: 0.02963402847122347
+            - at_point: -2.0669291338582676
+              value: 0.030964476062510123
+            - at_point: -2.02755905511811
+              value: 0.032445469951891286
+            - at_point: -1.9881889763779528
+              value: 0.034083800561818575
+            - at_point: -1.9488188976377954
+              value: 0.03588697802460203
+            - at_point: -1.909448818897638
+              value: 0.037863266464784905
+            - at_point: -1.8700787401574803
+              value: 0.04002172179484301
+            - at_point: -1.8307086614173227
+              value: 0.04237223318311709
+            - at_point: -1.7913385826771653
+              value: 0.04492556835059546
+            - at_point: -1.7519685039370079
+              value: 0.04769342284347706
+            - at_point: -1.7125984251968505
+              value: 0.05068847340872221
+            - at_point: -1.673228346456693
+              value: 0.05392443556664739
+            - at_point: -1.6338582677165354
+              value: 0.057416125423663165
+            - at_point: -1.594488188976378
+              value: 0.06117952569392354
+            - at_point: -1.5551181102362204
+              value: 0.0652318557938629
+            - at_point: -1.515748031496063
+              value: 0.06959164572937719
+            - at_point: -1.4763779527559056
+              value: 0.07427881330050065
+            - at_point: -1.4370078740157481
+              value: 0.07931474388869542
+            - at_point: -1.3976377952755905
+              value: 0.08472237174973157
+            - at_point: -1.358267716535433
+              value: 0.09052626128876937
+            - at_point: -1.3188976377952757
+              value: 0.09675268621680229
+            - at_point: -1.279527559055118
+              value: 0.10342970374622856
+            - at_point: -1.2401574803149606
+              value: 0.11058722003812206
+            - at_point: -1.2007874015748032
+              value: 0.11825704191692359
+            - at_point: -1.1614173228346456
+              value: 0.12647290836298186
+            - at_point: -1.1220472440944882
+              value: 0.13527049341339803
+            - at_point: -1.0826771653543308
+              value: 0.1446873697712145
+            - at_point: -1.0433070866141732
+              value: 0.1547629195580632
+            - at_point: -1.0039370078740157
+              value: 0.16553817515643815
+            - at_point: -0.9645669291338583
+              value: 0.1770555688857237
+            - at_point: -0.9251968503937009
+              value: 0.1893585652625809
+            - at_point: -0.8858267716535433
+              value: 0.2024911437604006
+            - at_point: -0.8464566929133859
+              value: 0.21649709330711997
+            - at_point: -0.8070866141732285
+              value: 0.23141907234184783
+            - at_point: -0.7677165354330708
+              value: 0.24729738033489138
+            - at_point: -0.7283464566929134
+              value: 0.26416837873985743
+            - at_point: -0.688976377952756
+              value: 0.2820624922058554
+            - at_point: -0.6496062992125984
+              value: 0.3010017158249994
+            - at_point: -0.610236220472441
+              value: 0.3209965531628281
+            - at_point: -0.5708661417322836
+              value: 0.3420423155835644
+            - at_point: -0.5314960629921259
+              value: 0.36411472970411807
+            - at_point: -0.4921259842519685
+              value: 0.3871648315505438
+            - at_point: -0.4527559055118111
+              value: 0.4111131790178906
+            - at_point: -0.4133858267716537
+              value: 0.4358434950020892
+            - at_point: -0.3740157480314963
+              value: 0.46119596812677294
+            - at_point: -0.33464566929133843
+              value: 0.4869605901517756
+            - at_point: -0.295275590551181
+              value: 0.5128710976512718
+            - at_point: -0.2559055118110236
+              value: 0.5386003000456058
+            - at_point: -0.2165354330708662
+              value: 0.563757792461471
+            - at_point: -0.1771653543307088
+              value: 0.5878912280804327
+            - at_point: -0.13779527559055138
+              value: 0.6104923989433578
+            - at_point: -0.09842519685039353
+              value: 0.6310092697292746
+            - at_point: -0.059055118110236116
+              value: 0.6488647476240781
+            - at_point: -0.019685039370078705
+              value: 0.6634822989811258
+            - at_point: 0.019685039370078705
+              value: 0.6743175447893663
+            - at_point: 0.059055118110236116
+              value: 0.6808937797464502
+            - at_point: 0.09842519685039353
+              value: 0.6828381712423597
+            - at_point: 0.13779527559055094
+              value: 0.6799145005074927
+            - at_point: 0.1771653543307088
+              value: 0.6720480228035897
+            - at_point: 0.2165354330708662
+              value: 0.6593385712811154
+            - at_point: 0.2559055118110236
+              value: 0.6420594358689553
+            - at_point: 0.295275590551181
+              value: 0.6206415861779712
+            - at_point: 0.33464566929133843
+              value: 0.5956450329947243
+            - at_point: 0.37401574803149584
+              value: 0.5677210117892549
+            - at_point: 0.4133858267716537
+              value: 0.5375697923543781
+            - at_point: 0.4527559055118111
+              value: 0.5058990728614475
+            - at_point: 0.4921259842519685
+              value: 0.4733871830215717
+            - at_point: 0.5314960629921259
+              value: 0.44065399423467777
+            - at_point: 0.5708661417322833
+              value: 0.4082408988455392
+            - at_point: 0.6102362204724407
+              value: 0.37659982114466706
+            - at_point: 0.6496062992125982
+              value: 0.34609018286860943
+            - at_point: 0.688976377952756
+              value: 0.31698214587955903
+            - at_point: 0.7283464566929134
+              value: 0.2894642588016512
+            - at_point: 0.7677165354330708
+              value: 0.2636537405042106
+            - at_point: 0.8070866141732282
+              value: 0.23960792046857984
+            - at_point: 0.8464566929133857
+              value: 0.21733571737822638
+            - at_point: 0.8858267716535431
+              value: 0.19680839553440166
+            - at_point: 0.9251968503937009
+              value: 0.17796914845982684
+            - at_point: 0.9645669291338583
+              value: 0.16074130096278524
+            - at_point: 1.0039370078740157
+              value: 0.14503509348017876
+            - at_point: 1.0433070866141732
+              value: 0.13075312423557564
+            - at_point: 1.0826771653543306
+              value: 0.1177945883310711
+            - at_point: 1.122047244094488
+              value: 0.10605848142766615
+            - at_point: 1.1614173228346458
+              value: 0.09544594063776145
+            - at_point: 1.2007874015748032
+              value: 0.08586188575232018
+            - at_point: 1.2401574803149606
+              value: 0.07721610662486117
+            - at_point: 1.279527559055118
+              value: 0.06942392199928384
+            - at_point: 1.3188976377952755
+              value: 0.06240651420459248
+            - at_point: 1.3582677165354329
+              value: 0.05609102463737502
+            - at_point: 1.3976377952755903
+              value: 0.050410477665127885
+            - at_point: 1.4370078740157481
+              value: 0.04530358581925286
+            - at_point: 1.4763779527559056
+              value: 0.040714476885865714
+            - at_point: 1.515748031496063
+              value: 0.03659237354450013
+            - at_point: 1.5551181102362204
+              value: 0.03289124826467349
+            - at_point: 1.5944881889763778
+              value: 0.029569469939598712
+            - at_point: 1.6338582677165352
+              value: 0.02658945391761315
+            - at_point: 1.6732283464566926
+              value: 0.023917323416509546
+            - at_point: 1.71259842519685
+              value: 0.021522587541469546
+            - at_point: 1.7519685039370074
+              value: 0.01937783907860285
+            - at_point: 1.7913385826771657
+              value: 0.017458473743040503
+            - at_point: 1.8307086614173231
+              value: 0.015742431493991772
+            - at_point: 1.8700787401574805
+              value: 0.014209959786507097
+            - at_point: 1.909448818897638
+              value: 0.0128433981302989
+            - at_point: 1.9488188976377954
+              value: 0.011626983007239383
+            - at_point: 1.9881889763779528
+              value: 0.01054667201292033
+            - at_point: 2.02755905511811
+              value: 0.00958998599718211
+            - at_point: 2.0669291338582676
+              value: 0.008745867956095933
+            - at_point: 2.106299212598425
+              value: 0.008004557452756725
+            - at_point: 2.1456692913385824
+              value: 0.007357479401080417
+            - at_point: 2.18503937007874
+              value: 0.006797146124396865
+            - at_point: 2.2244094488188972
+              value: 0.006317071690900174
+            - at_point: 2.2637795275590546
+              value: 0.005911697625298102
+            - at_point: 2.303149606299213
+              value: 0.005576329196347681
+            - at_point: 2.3425196850393704
+              value: 0.005307081580833889
+            - at_point: 2.3818897637795278
+              value: 0.005100835304295822
+            - at_point: 2.421259842519685
+              value: 0.004955200456592805
+            - at_point: 2.4606299212598426
+              value: 0.004868489275848075
+            - at_point: 2.5
+              value: 0.004839696787444073
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                c:
+                  type: number
+                  example: 0.3
+                g:
+                  type: number
+                  example: 5
+                m:
+                  type: number
+                  example: 5
+                y:
+                  type: number
+                  example: 1.2
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          additionalProperties: false
+  "/heston/density":
+    post:
+      operationId: computeHestonDensity
+      summary: Calculator for computing probability densities for Heston model
+      description: Computes probability density for a Heston model
+      responses:
+        '200':
+          description: Density
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: -2.5
+              value: 0.023577580212142506
+            - at_point: -2.4606299212598426
+              value: 0.023635902109854987
+            - at_point: -2.421259842519685
+              value: 0.023811135771083996
+            - at_point: -2.3818897637795278
+              value: 0.024104086295496534
+            - at_point: -2.34251968503937
+              value: 0.0245160995072489
+            - at_point: -2.3031496062992125
+              value: 0.02504906796565831
+            - at_point: -2.263779527559055
+              value: 0.025705439427417362
+            - at_point: -2.2244094488188977
+              value: 0.026488227807769143
+            - at_point: -2.1850393700787403
+              value: 0.02740102670177468
+            - at_point: -2.145669291338583
+              value: 0.028448025540565573
+            - at_point: -2.106299212598425
+              value: 0.02963402847122347
+            - at_point: -2.0669291338582676
+              value: 0.030964476062510123
+            - at_point: -2.02755905511811
+              value: 0.032445469951891286
+            - at_point: -1.9881889763779528
+              value: 0.034083800561818575
+            - at_point: -1.9488188976377954
+              value: 0.03588697802460203
+            - at_point: -1.909448818897638
+              value: 0.037863266464784905
+            - at_point: -1.8700787401574803
+              value: 0.04002172179484301
+            - at_point: -1.8307086614173227
+              value: 0.04237223318311709
+            - at_point: -1.7913385826771653
+              value: 0.04492556835059546
+            - at_point: -1.7519685039370079
+              value: 0.04769342284347706
+            - at_point: -1.7125984251968505
+              value: 0.05068847340872221
+            - at_point: -1.673228346456693
+              value: 0.05392443556664739
+            - at_point: -1.6338582677165354
+              value: 0.057416125423663165
+            - at_point: -1.594488188976378
+              value: 0.06117952569392354
+            - at_point: -1.5551181102362204
+              value: 0.0652318557938629
+            - at_point: -1.515748031496063
+              value: 0.06959164572937719
+            - at_point: -1.4763779527559056
+              value: 0.07427881330050065
+            - at_point: -1.4370078740157481
+              value: 0.07931474388869542
+            - at_point: -1.3976377952755905
+              value: 0.08472237174973157
+            - at_point: -1.358267716535433
+              value: 0.09052626128876937
+            - at_point: -1.3188976377952757
+              value: 0.09675268621680229
+            - at_point: -1.279527559055118
+              value: 0.10342970374622856
+            - at_point: -1.2401574803149606
+              value: 0.11058722003812206
+            - at_point: -1.2007874015748032
+              value: 0.11825704191692359
+            - at_point: -1.1614173228346456
+              value: 0.12647290836298186
+            - at_point: -1.1220472440944882
+              value: 0.13527049341339803
+            - at_point: -1.0826771653543308
+              value: 0.1446873697712145
+            - at_point: -1.0433070866141732
+              value: 0.1547629195580632
+            - at_point: -1.0039370078740157
+              value: 0.16553817515643815
+            - at_point: -0.9645669291338583
+              value: 0.1770555688857237
+            - at_point: -0.9251968503937009
+              value: 0.1893585652625809
+            - at_point: -0.8858267716535433
+              value: 0.2024911437604006
+            - at_point: -0.8464566929133859
+              value: 0.21649709330711997
+            - at_point: -0.8070866141732285
+              value: 0.23141907234184783
+            - at_point: -0.7677165354330708
+              value: 0.24729738033489138
+            - at_point: -0.7283464566929134
+              value: 0.26416837873985743
+            - at_point: -0.688976377952756
+              value: 0.2820624922058554
+            - at_point: -0.6496062992125984
+              value: 0.3010017158249994
+            - at_point: -0.610236220472441
+              value: 0.3209965531628281
+            - at_point: -0.5708661417322836
+              value: 0.3420423155835644
+            - at_point: -0.5314960629921259
+              value: 0.36411472970411807
+            - at_point: -0.4921259842519685
+              value: 0.3871648315505438
+            - at_point: -0.4527559055118111
+              value: 0.4111131790178906
+            - at_point: -0.4133858267716537
+              value: 0.4358434950020892
+            - at_point: -0.3740157480314963
+              value: 0.46119596812677294
+            - at_point: -0.33464566929133843
+              value: 0.4869605901517756
+            - at_point: -0.295275590551181
+              value: 0.5128710976512718
+            - at_point: -0.2559055118110236
+              value: 0.5386003000456058
+            - at_point: -0.2165354330708662
+              value: 0.563757792461471
+            - at_point: -0.1771653543307088
+              value: 0.5878912280804327
+            - at_point: -0.13779527559055138
+              value: 0.6104923989433578
+            - at_point: -0.09842519685039353
+              value: 0.6310092697292746
+            - at_point: -0.059055118110236116
+              value: 0.6488647476240781
+            - at_point: -0.019685039370078705
+              value: 0.6634822989811258
+            - at_point: 0.019685039370078705
+              value: 0.6743175447893663
+            - at_point: 0.059055118110236116
+              value: 0.6808937797464502
+            - at_point: 0.09842519685039353
+              value: 0.6828381712423597
+            - at_point: 0.13779527559055094
+              value: 0.6799145005074927
+            - at_point: 0.1771653543307088
+              value: 0.6720480228035897
+            - at_point: 0.2165354330708662
+              value: 0.6593385712811154
+            - at_point: 0.2559055118110236
+              value: 0.6420594358689553
+            - at_point: 0.295275590551181
+              value: 0.6206415861779712
+            - at_point: 0.33464566929133843
+              value: 0.5956450329947243
+            - at_point: 0.37401574803149584
+              value: 0.5677210117892549
+            - at_point: 0.4133858267716537
+              value: 0.5375697923543781
+            - at_point: 0.4527559055118111
+              value: 0.5058990728614475
+            - at_point: 0.4921259842519685
+              value: 0.4733871830215717
+            - at_point: 0.5314960629921259
+              value: 0.44065399423467777
+            - at_point: 0.5708661417322833
+              value: 0.4082408988455392
+            - at_point: 0.6102362204724407
+              value: 0.37659982114466706
+            - at_point: 0.6496062992125982
+              value: 0.34609018286860943
+            - at_point: 0.688976377952756
+              value: 0.31698214587955903
+            - at_point: 0.7283464566929134
+              value: 0.2894642588016512
+            - at_point: 0.7677165354330708
+              value: 0.2636537405042106
+            - at_point: 0.8070866141732282
+              value: 0.23960792046857984
+            - at_point: 0.8464566929133857
+              value: 0.21733571737822638
+            - at_point: 0.8858267716535431
+              value: 0.19680839553440166
+            - at_point: 0.9251968503937009
+              value: 0.17796914845982684
+            - at_point: 0.9645669291338583
+              value: 0.16074130096278524
+            - at_point: 1.0039370078740157
+              value: 0.14503509348017876
+            - at_point: 1.0433070866141732
+              value: 0.13075312423557564
+            - at_point: 1.0826771653543306
+              value: 0.1177945883310711
+            - at_point: 1.122047244094488
+              value: 0.10605848142766615
+            - at_point: 1.1614173228346458
+              value: 0.09544594063776145
+            - at_point: 1.2007874015748032
+              value: 0.08586188575232018
+            - at_point: 1.2401574803149606
+              value: 0.07721610662486117
+            - at_point: 1.279527559055118
+              value: 0.06942392199928384
+            - at_point: 1.3188976377952755
+              value: 0.06240651420459248
+            - at_point: 1.3582677165354329
+              value: 0.05609102463737502
+            - at_point: 1.3976377952755903
+              value: 0.050410477665127885
+            - at_point: 1.4370078740157481
+              value: 0.04530358581925286
+            - at_point: 1.4763779527559056
+              value: 0.040714476885865714
+            - at_point: 1.515748031496063
+              value: 0.03659237354450013
+            - at_point: 1.5551181102362204
+              value: 0.03289124826467349
+            - at_point: 1.5944881889763778
+              value: 0.029569469939598712
+            - at_point: 1.6338582677165352
+              value: 0.02658945391761315
+            - at_point: 1.6732283464566926
+              value: 0.023917323416509546
+            - at_point: 1.71259842519685
+              value: 0.021522587541469546
+            - at_point: 1.7519685039370074
+              value: 0.01937783907860285
+            - at_point: 1.7913385826771657
+              value: 0.017458473743040503
+            - at_point: 1.8307086614173231
+              value: 0.015742431493991772
+            - at_point: 1.8700787401574805
+              value: 0.014209959786507097
+            - at_point: 1.909448818897638
+              value: 0.0128433981302989
+            - at_point: 1.9488188976377954
+              value: 0.011626983007239383
+            - at_point: 1.9881889763779528
+              value: 0.01054667201292033
+            - at_point: 2.02755905511811
+              value: 0.00958998599718211
+            - at_point: 2.0669291338582676
+              value: 0.008745867956095933
+            - at_point: 2.106299212598425
+              value: 0.008004557452756725
+            - at_point: 2.1456692913385824
+              value: 0.007357479401080417
+            - at_point: 2.18503937007874
+              value: 0.006797146124396865
+            - at_point: 2.2244094488188972
+              value: 0.006317071690900174
+            - at_point: 2.2637795275590546
+              value: 0.005911697625298102
+            - at_point: 2.303149606299213
+              value: 0.005576329196347681
+            - at_point: 2.3425196850393704
+              value: 0.005307081580833889
+            - at_point: 2.3818897637795278
+              value: 0.005100835304295822
+            - at_point: 2.421259842519685
+              value: 0.004955200456592805
+            - at_point: 2.4606299212598426
+              value: 0.004868489275848075
+            - at_point: 2.5
+              value: 0.004839696787444073
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.25
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          additionalProperties: false
+  "/merton/density":
+    post:
+      operationId: computeMertonDensity
+      summary: Calculator for computing probability densities for Merton model
+      description: Computes probability density for a Merton model
+      responses:
+        '200':
+          description: Density
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: number
+                at_point:
+                  type: number
+              required:
+              - value
+              - at_point
+              additionalProperties: false
+          examples:
+            application/json:
+            - at_point: -2.5
+              value: 0.023577580212142506
+            - at_point: -2.4606299212598426
+              value: 0.023635902109854987
+            - at_point: -2.421259842519685
+              value: 0.023811135771083996
+            - at_point: -2.3818897637795278
+              value: 0.024104086295496534
+            - at_point: -2.34251968503937
+              value: 0.0245160995072489
+            - at_point: -2.3031496062992125
+              value: 0.02504906796565831
+            - at_point: -2.263779527559055
+              value: 0.025705439427417362
+            - at_point: -2.2244094488188977
+              value: 0.026488227807769143
+            - at_point: -2.1850393700787403
+              value: 0.02740102670177468
+            - at_point: -2.145669291338583
+              value: 0.028448025540565573
+            - at_point: -2.106299212598425
+              value: 0.02963402847122347
+            - at_point: -2.0669291338582676
+              value: 0.030964476062510123
+            - at_point: -2.02755905511811
+              value: 0.032445469951891286
+            - at_point: -1.9881889763779528
+              value: 0.034083800561818575
+            - at_point: -1.9488188976377954
+              value: 0.03588697802460203
+            - at_point: -1.909448818897638
+              value: 0.037863266464784905
+            - at_point: -1.8700787401574803
+              value: 0.04002172179484301
+            - at_point: -1.8307086614173227
+              value: 0.04237223318311709
+            - at_point: -1.7913385826771653
+              value: 0.04492556835059546
+            - at_point: -1.7519685039370079
+              value: 0.04769342284347706
+            - at_point: -1.7125984251968505
+              value: 0.05068847340872221
+            - at_point: -1.673228346456693
+              value: 0.05392443556664739
+            - at_point: -1.6338582677165354
+              value: 0.057416125423663165
+            - at_point: -1.594488188976378
+              value: 0.06117952569392354
+            - at_point: -1.5551181102362204
+              value: 0.0652318557938629
+            - at_point: -1.515748031496063
+              value: 0.06959164572937719
+            - at_point: -1.4763779527559056
+              value: 0.07427881330050065
+            - at_point: -1.4370078740157481
+              value: 0.07931474388869542
+            - at_point: -1.3976377952755905
+              value: 0.08472237174973157
+            - at_point: -1.358267716535433
+              value: 0.09052626128876937
+            - at_point: -1.3188976377952757
+              value: 0.09675268621680229
+            - at_point: -1.279527559055118
+              value: 0.10342970374622856
+            - at_point: -1.2401574803149606
+              value: 0.11058722003812206
+            - at_point: -1.2007874015748032
+              value: 0.11825704191692359
+            - at_point: -1.1614173228346456
+              value: 0.12647290836298186
+            - at_point: -1.1220472440944882
+              value: 0.13527049341339803
+            - at_point: -1.0826771653543308
+              value: 0.1446873697712145
+            - at_point: -1.0433070866141732
+              value: 0.1547629195580632
+            - at_point: -1.0039370078740157
+              value: 0.16553817515643815
+            - at_point: -0.9645669291338583
+              value: 0.1770555688857237
+            - at_point: -0.9251968503937009
+              value: 0.1893585652625809
+            - at_point: -0.8858267716535433
+              value: 0.2024911437604006
+            - at_point: -0.8464566929133859
+              value: 0.21649709330711997
+            - at_point: -0.8070866141732285
+              value: 0.23141907234184783
+            - at_point: -0.7677165354330708
+              value: 0.24729738033489138
+            - at_point: -0.7283464566929134
+              value: 0.26416837873985743
+            - at_point: -0.688976377952756
+              value: 0.2820624922058554
+            - at_point: -0.6496062992125984
+              value: 0.3010017158249994
+            - at_point: -0.610236220472441
+              value: 0.3209965531628281
+            - at_point: -0.5708661417322836
+              value: 0.3420423155835644
+            - at_point: -0.5314960629921259
+              value: 0.36411472970411807
+            - at_point: -0.4921259842519685
+              value: 0.3871648315505438
+            - at_point: -0.4527559055118111
+              value: 0.4111131790178906
+            - at_point: -0.4133858267716537
+              value: 0.4358434950020892
+            - at_point: -0.3740157480314963
+              value: 0.46119596812677294
+            - at_point: -0.33464566929133843
+              value: 0.4869605901517756
+            - at_point: -0.295275590551181
+              value: 0.5128710976512718
+            - at_point: -0.2559055118110236
+              value: 0.5386003000456058
+            - at_point: -0.2165354330708662
+              value: 0.563757792461471
+            - at_point: -0.1771653543307088
+              value: 0.5878912280804327
+            - at_point: -0.13779527559055138
+              value: 0.6104923989433578
+            - at_point: -0.09842519685039353
+              value: 0.6310092697292746
+            - at_point: -0.059055118110236116
+              value: 0.6488647476240781
+            - at_point: -0.019685039370078705
+              value: 0.6634822989811258
+            - at_point: 0.019685039370078705
+              value: 0.6743175447893663
+            - at_point: 0.059055118110236116
+              value: 0.6808937797464502
+            - at_point: 0.09842519685039353
+              value: 0.6828381712423597
+            - at_point: 0.13779527559055094
+              value: 0.6799145005074927
+            - at_point: 0.1771653543307088
+              value: 0.6720480228035897
+            - at_point: 0.2165354330708662
+              value: 0.6593385712811154
+            - at_point: 0.2559055118110236
+              value: 0.6420594358689553
+            - at_point: 0.295275590551181
+              value: 0.6206415861779712
+            - at_point: 0.33464566929133843
+              value: 0.5956450329947243
+            - at_point: 0.37401574803149584
+              value: 0.5677210117892549
+            - at_point: 0.4133858267716537
+              value: 0.5375697923543781
+            - at_point: 0.4527559055118111
+              value: 0.5058990728614475
+            - at_point: 0.4921259842519685
+              value: 0.4733871830215717
+            - at_point: 0.5314960629921259
+              value: 0.44065399423467777
+            - at_point: 0.5708661417322833
+              value: 0.4082408988455392
+            - at_point: 0.6102362204724407
+              value: 0.37659982114466706
+            - at_point: 0.6496062992125982
+              value: 0.34609018286860943
+            - at_point: 0.688976377952756
+              value: 0.31698214587955903
+            - at_point: 0.7283464566929134
+              value: 0.2894642588016512
+            - at_point: 0.7677165354330708
+              value: 0.2636537405042106
+            - at_point: 0.8070866141732282
+              value: 0.23960792046857984
+            - at_point: 0.8464566929133857
+              value: 0.21733571737822638
+            - at_point: 0.8858267716535431
+              value: 0.19680839553440166
+            - at_point: 0.9251968503937009
+              value: 0.17796914845982684
+            - at_point: 0.9645669291338583
+              value: 0.16074130096278524
+            - at_point: 1.0039370078740157
+              value: 0.14503509348017876
+            - at_point: 1.0433070866141732
+              value: 0.13075312423557564
+            - at_point: 1.0826771653543306
+              value: 0.1177945883310711
+            - at_point: 1.122047244094488
+              value: 0.10605848142766615
+            - at_point: 1.1614173228346458
+              value: 0.09544594063776145
+            - at_point: 1.2007874015748032
+              value: 0.08586188575232018
+            - at_point: 1.2401574803149606
+              value: 0.07721610662486117
+            - at_point: 1.279527559055118
+              value: 0.06942392199928384
+            - at_point: 1.3188976377952755
+              value: 0.06240651420459248
+            - at_point: 1.3582677165354329
+              value: 0.05609102463737502
+            - at_point: 1.3976377952755903
+              value: 0.050410477665127885
+            - at_point: 1.4370078740157481
+              value: 0.04530358581925286
+            - at_point: 1.4763779527559056
+              value: 0.040714476885865714
+            - at_point: 1.515748031496063
+              value: 0.03659237354450013
+            - at_point: 1.5551181102362204
+              value: 0.03289124826467349
+            - at_point: 1.5944881889763778
+              value: 0.029569469939598712
+            - at_point: 1.6338582677165352
+              value: 0.02658945391761315
+            - at_point: 1.6732283464566926
+              value: 0.023917323416509546
+            - at_point: 1.71259842519685
+              value: 0.021522587541469546
+            - at_point: 1.7519685039370074
+              value: 0.01937783907860285
+            - at_point: 1.7913385826771657
+              value: 0.017458473743040503
+            - at_point: 1.8307086614173231
+              value: 0.015742431493991772
+            - at_point: 1.8700787401574805
+              value: 0.014209959786507097
+            - at_point: 1.909448818897638
+              value: 0.0128433981302989
+            - at_point: 1.9488188976377954
+              value: 0.011626983007239383
+            - at_point: 1.9881889763779528
+              value: 0.01054667201292033
+            - at_point: 2.02755905511811
+              value: 0.00958998599718211
+            - at_point: 2.0669291338582676
+              value: 0.008745867956095933
+            - at_point: 2.106299212598425
+              value: 0.008004557452756725
+            - at_point: 2.1456692913385824
+              value: 0.007357479401080417
+            - at_point: 2.18503937007874
+              value: 0.006797146124396865
+            - at_point: 2.2244094488188972
+              value: 0.006317071690900174
+            - at_point: 2.2637795275590546
+              value: 0.005911697625298102
+            - at_point: 2.303149606299213
+              value: 0.005576329196347681
+            - at_point: 2.3425196850393704
+              value: 0.005307081580833889
+            - at_point: 2.3818897637795278
+              value: 0.005100835304295822
+            - at_point: 2.421259842519685
+              value: 0.004955200456592805
+            - at_point: 2.4606299212598426
+              value: 0.004868489275848075
+            - at_point: 2.5
+              value: 0.004839696787444073
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                mu_l:
+                  type: number
+                  example: -0.05
+                sig_l:
+                  type: number
+                  example: 0.2
+                lambda:
+                  type: number
+                  example: 1
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          additionalProperties: false
+  "/cgmy/riskmetric":
+    post:
+      operationId: computeCGMYMetric
+      summary: Calculator for computing risk metrics for CGMY process
+      description: Computes value at risk and expected shortfall for extended CGMY
+        process
+      responses:
+        '200':
+          description: Value at risk and expected shortfall
+          schema:
+            type: object
+            properties:
+              value_at_risk:
+                type: number
+              expected_shortfall:
+                type: number
+            required:
+            - value_at_risk
+            - expected_shortfall
+            additionalProperties: false
+          examples:
+            application/json:
+              expected_shortfall: 0.5899624494097084
+              value_at_risk: -0.009528544711918437
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                c:
+                  type: number
+                  example: 0.3
+                g:
+                  type: number
+                  example: 5
+                m:
+                  type: number
+                  example: 5
+                y:
+                  type: number
+                  example: 1.2
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            quantile:
+              type: number
+              example: 0.01
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          additionalProperties: false
+  "/heston/riskmetric":
+    post:
+      operationId: computeHestonMetric
+      summary: Calculator for computing risk metrics for Heston model
+      description: Computes value at risk and expected shortfall for a Heston model
+      responses:
+        '200':
+          description: Value at risk and expected shortfall
+          schema:
+            type: object
+            properties:
+              value_at_risk:
+                type: number
+              expected_shortfall:
+                type: number
+            required:
+            - value_at_risk
+            - expected_shortfall
+            additionalProperties: false
+          examples:
+            application/json:
+              expected_shortfall: 0.5899624494097084
+              value_at_risk: -0.009528544711918437
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.25
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            quantile:
+              type: number
+              example: 0.01
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          - quantile
+          additionalProperties: false
+  "/merton/riskmetric":
+    post:
+      operationId: computeMertonMetric
+      summary: Calculator for computing risk metrics for Merton model
+      description: Computes value at risk and expected shortfall for an extended Merton
+        model
+      responses:
+        '200':
+          description: Value at risk and expected shortfall
+          schema:
+            type: object
+            properties:
+              value_at_risk:
+                type: number
+              expected_shortfall:
+                type: number
+            required:
+            - value_at_risk
+            - expected_shortfall
+            additionalProperties: false
+          examples:
+            application/json:
+              expected_shortfall: 0.5899624494097084
+              value_at_risk: -0.009528544711918437
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            num_u:
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                mu_l:
+                  type: number
+                  example: -0.05
+                sig_l:
+                  type: number
+                  example: 0.2
+                lambda:
+                  type: number
+                  example: 1
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            quantile:
+              type: number
+              example: 0.01
+          required:
+          - num_u
+          - rate
+          - maturity
+          - cf_parameters
+          - quantile
+          additionalProperties: false
+  "/heston/parameters/parameter_ranges":
+    get:
+      operationId: getHestonRange
+      summary: Parameter Constraints
+      description: Obtains the constraints that the parameters in the post requests
+        are required to conform to for Heston.
+      responses:
+        '200':
+          description: Constraints
+          schema:
+            type: object
+            properties:
+              v0:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              speed:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              eta_v:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              sigma:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              rho:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+            additionalProperties: false
+          examples:
+            application/json:
+              v0:
+                lower: 0
+                upper: 0.9
+                types: float
+              speed:
+                lower: 0
+                upper: 2
+                types: float
+              eta_v:
+                lower: 0
+                upper: 0.5
+                types: float
+              sigma:
+                lower: 0
+                upper: 1
+                types: float
+              rho:
+                lower: -1
+                upper: 1
+                types: float
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters: []
+  "/cgmy/parameters/parameter_ranges":
+    get:
+      operationId: getCGMYRange
+      summary: Parameter Constraints
+      description: Obtains the constraints that the parameters in the post requests
+        are required to conform to for CGMY.
+      responses:
+        '200':
+          description: Constraints
+          schema:
+            type: object
+            properties:
+              c:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              g:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              m:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              y:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              v0:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              speed:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              eta_v:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              sigma:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              rho:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+            additionalProperties: false
+          examples:
+            application/json:
+              c:
+                lower: 0
+                upper: 10
+                type: float
+              g:
+                lower: 0
+                upper: 20
+                type: float
+              m:
+                lower: 0
+                upper: 20
+                type: float
+              y:
+                lower: -2
+                upper: 2
+                type: float
+              v0:
+                lower: 0
+                upper: 2
+                type: float
+              speed:
+                lower: 0
+                upper: 2
+                type: float
+              eta_v:
+                lower: 0
+                upper: 0.5
+                type: float
+              sigma:
+                lower: 0
+                upper: 1
+                type: float
+              rho:
+                lower: -1
+                upper: 1
+                type: float
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters: []
+  "/merton/parameters/parameter_ranges":
+    get:
+      operationId: getMertonRange
+      summary: Parameter Constraints
+      description: Obtains the constraints that the parameters in the post requests
+        are required to conform to for Merton.
+      responses:
+        '200':
+          description: Constraints
+          schema:
+            type: object
+            properties:
+              lambda:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              mu_l:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              sig_l:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              v0:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              speed:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              eta_v:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              sigma:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              rho:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+            additionalProperties: false
+          examples:
+            application/json:
+              lambda:
+                lower: 0
+                upper: 4
+                types: float
+              mu_l:
+                lower: 0
+                upper: 1
+                types: float
+              sig_l:
+                lower: 0
+                upper: 0.6
+                types: float
+              v0:
+                lower: 0
+                upper: 2
+                types: float
+              speed:
+                lower: 0
+                upper: 2
+                types: float
+              eta_v:
+                lower: 0
+                upper: 0.5
+                types: float
+              sigma:
+                lower: 0
+                upper: 1
+                types: float
+              rho:
+                lower: -1
+                upper: 1
+                types: float
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters: []
+  "/market/parameters/parameter_ranges":
+    get:
+      operationId: getMarketRange
+      summary: Market Constraints
+      description: Obtains the constraints that correspond with the market.
+      responses:
+        '200':
+          description: Constraints
+          schema:
+            type: object
+            properties:
+              rate:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              asset:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              maturity:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              num_u:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+              quantile:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                  upper:
+                    type: number
+                  types:
+                    type: string
+                required:
+                - lower
+                - upper
+                - types
+                additionalProperties: false
+          examples:
+            application/json:
+              asset:
+                lower: 0
+                upper: 1000000
+                types: float
+              maturity:
+                lower: 0
+                upper: 1000000
+                types: float
+              num_u:
+                lower: 5
+                upper: 10
+                types: int
+              quantile:
+                lower: 0
+                upper: 1
+                types: float
+              rate:
+                lower: 0
+                upper: 0.4
+                types: float
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters: []
+

@@ -1,3 +1,4 @@
+#[macro_use]
+extern crate rocket_contrib;
 pub mod constraints;
-pub mod http_helper;
 pub mod maps;

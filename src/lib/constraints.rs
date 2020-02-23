@@ -1,25 +1,28 @@
+use rocket::response::Responder;
+use rocket_contrib::json::{JsonError, JsonValue};
 use serde_derive::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
 pub enum ErrorType {
     OutOfBounds(String),
     NoExist(String),
     FunctionError(String),
     NoConvergence(),
+    ValueAtRiskError(String),
+    JsonError(String),
 }
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Responder, Serialize)]
+#[response(status = 400, content_type = "json")]
 pub struct ParameterError {
-    msg: String,
+    msg: JsonValue,
 }
 
 impl ParameterError {
     pub fn new(error_type: &ErrorType) -> Self {
         ParameterError {
-            msg: match error_type {
+            msg: json!({"err":match error_type {
                 ErrorType::OutOfBounds(parameter) => {
                     format!("Parameter {} out of bounds.", parameter)
                 }
@@ -28,19 +31,36 @@ impl ParameterError {
                     format!("Function indicator {} does not exist.", parameter)
                 }
                 ErrorType::NoConvergence() => format!("Root does not exist for implied volatility"),
-            },
+                ErrorType::ValueAtRiskError(message) => format!("{}", message),
+                ErrorType::JsonError(message) => format!("{}", message),
+            }}),
         }
+    }
+}
+
+impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
+    fn from(error: cf_dist_utils::ValueAtRiskError) -> ParameterError {
+        ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
+    }
+}
+impl From<JsonError<'_>> for ParameterError {
+    fn from(error: JsonError) -> ParameterError {
+        let msg = match error {
+            JsonError::Io(err) => err.to_string(),
+            JsonError::Parse(v, err) => format!("parse error {}, received {}", err, v),
+        };
+        ParameterError::new(&ErrorType::JsonError(msg))
     }
 }
 
 impl fmt::Display for ParameterError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{}", self.msg.get("err").unwrap().as_str().unwrap())
     }
 }
 impl Error for ParameterError {
     fn description(&self) -> &str {
-        &self.msg
+        self.msg.get("err").unwrap().as_str().unwrap()
     }
 }
 

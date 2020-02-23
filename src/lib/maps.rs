@@ -2,7 +2,7 @@ use fang_oost_option::option_pricing;
 use num_complex::Complex;
 use rayon::prelude::*;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::VecDeque, error::Error};
+use std::collections::VecDeque;
 pub const CGMY: i32 = 0;
 pub const MERTON: i32 = 1;
 pub const HESTON: i32 = 2;
@@ -55,25 +55,6 @@ pub fn get_fn_indicators(
         _ => Err(crate::constraints::ParameterError::new(
             &crate::constraints::ErrorType::FunctionError(combine_types),
         )),
-    }
-}
-/// Gets whether implied volatility should be included
-/// # Examples
-///
-/// ```
-/// extern crate utils;
-/// use utils::maps;
-/// # fn main() {
-/// let include_iv = maps::get_iv_choice(
-///     &"true"
-/// );
-/// assert!(include_iv);
-/// # }
-/// ```
-pub fn get_iv_choice(query: &str) -> bool {
-    match query {
-        "true" => true,
-        _ => false,
     }
 }
 
@@ -229,6 +210,7 @@ pub fn get_density_results_as_json(
         }
     }
 }
+
 pub fn get_risk_measure_results_as_json(
     cf_parameters: &crate::constraints::CFParameters,
     density_scale: f64,
@@ -236,7 +218,7 @@ pub fn get_risk_measure_results_as_json(
     maturity: f64,
     rate: f64,
     quantile: f64,
-) -> Result<cf_dist_utils::RiskMetric, Box<dyn Error>> {
+) -> Result<cf_dist_utils::RiskMetric, crate::constraints::ParameterError> {
     match cf_parameters {
         crate::constraints::CFParameters::CGMY(cf_params) => {
             let (cf_inst, vol) = get_cgmy_cf(cf_params, maturity, rate)?;

@@ -9,8 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Run tests stable
-      run: cargo test 
     - name: Benchmarks
       uses: phillyfan1138/gnuplot-action@master
     - name: Deploy pages

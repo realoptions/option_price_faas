@@ -3,36 +3,133 @@ on:
   push:
     tags:
     - '*'
-
+env:
+  PROJECT_ID: finside
+  RUN_REGION: us-central1
+  SERVICE_NAME: realoptions
+  GATEWAY_SERVICE: realoptions-gateway-lnmfgwrxtq-uc.a.run.app
 jobs:
   release: 
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Run cargo test
-      run: cargo test
-    - uses: phillyfan1138/musl-rust-action@master
-    - name: Integration test
-      run: |
-        docker pull lambci/lambda:provided
-        npm ci
-        npm test 
+    - uses: hecrj/setup-rust-action@master
+      with:
+        rust-version: nightly
 
-    - name: deploy aws
+    - name: Build
+      run: cargo build
+    - name: Run tests nightly
       run: |
-        node ./src/js/copyBinaries
-        npx serverless deploy
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        cargo test
+
+    # Setup gcloud CLI
+    # To create a service account, 
+    # gcloud iam service-accounts create [SA-NAME] \
+    # --description "[SA-DESCRIPTION]" \
+    # --display-name "[SA-DISPLAY-NAME]"
+
+    # to create a key for the service account,
+    # gcloud iam service-accounts keys create ~/key.json \
+    # --iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
+
+    # to base64 it,
+    # cat ~/key.json | base64
+
+    # to get email address,
+    # gcloud iam service-accounts list
+
+    # to grant roles, 
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/run.admin 
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/viewer
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/cloudbuild.builds.builder
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/iam.serviceAccountUser
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/firebasehosting.admin
+    #
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '275.0.0'
+        service_account_email: ${{ secrets.SA_EMAIL }}
+        service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+
+    # Configure gcloud CLI
+    - name: gcloud Set up
+      run: |
+        gcloud config set project $PROJECT_ID
+        gcloud auth configure-docker
+    # Build and push image to Google Container Registry
+    - name: Build
+      run: |
+        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+
+    # Deploy image to Cloud Run
+    - name: Deploy
+      run: |
+        gcloud run deploy $SERVICE_NAME \
+          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          --region $RUN_REGION \
+          --platform managed 
+
+    # API Management
+    # gcloud services enable servicecontrol.googleapis.com
+    # gcloud services enable endpoints.googleapis.com
+    # gcloud projects add-iam-policy-binding [project] \
+    # --member serviceAccount:[emailaddress] \
+    # --role roles/servicemanagement.configEditor
+    - name: Swagger
+      run: |
+        sed 's/api2.finside.org/realoptions-gateway-lnmfgwrxtq-uc.a.run.app/g' docs/openapi_v2.yml  > docs/urlsubstitute.yml
+        gcloud endpoints services deploy docs/urlsubstitute.yml \
+          --project $PROJECT_ID
         
+    ## Todo! dynamic service configuration
+    - name: Build API Gateway
+      run: |
+        GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${GATEWAY_SERVICE} --limit 1 \
+          | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
+        curl --fail -o "service.json" -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+          "https://servicemanagement.googleapis.com/v1/services/${GATEWAY_SERVICE}/configs/${GATEWAY_CONFIG}?view=FULL" 
+        docker build . -f docker/gateway.Dockerfile --tag gcr.io/${PROJECT_ID}/endpoints-runtime-serverless:${GATEWAY_SERVICE}-${GATEWAY_CONFIG}
+        docker push gcr.io/${PROJECT_ID}/endpoints-runtime-serverless:${GATEWAY_SERVICE}-${GATEWAY_CONFIG}
+
+    - name: Deploy Gateway
+      run: |
+        GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${GATEWAY_SERVICE} --limit 1 \
+          | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
+        gcloud run deploy ${SERVICE_NAME}-gateway \
+          --image=gcr.io/${PROJECT_ID}/endpoints-runtime-serverless:${GATEWAY_SERVICE}-${GATEWAY_CONFIG} \
+          --set-env-vars=ESPv2_ARGS=--cors_preset=basic \
+          --allow-unauthenticated \
+          --platform managed \
+          --project $PROJECT_ID \
+          --region $RUN_REGION 
+
+    - name: Policy binding
+      run: |
+        gcloud run services add-iam-policy-binding $SERVICE_NAME \
+          --member "serviceAccount:${{secrets.ESP_PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" \
+          --role "roles/run.invoker" \
+          --platform managed \
+          --region $RUN_REGION  \
+          --project ${PROJECT_ID}
+
     - name: release files
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "./target/x86_64-unknown-linux-musl/release/*,./serverless.yml,./docs/openapi_merged.yml"
+        artifacts: "./target/x86_64-unknown-linux-musl/release/*,./serverless.yml,./docs/openapi_v2.yml"
         # bodyFile: "body.md"
         token: ${{ secrets.ACCESS_TOKEN }}
-
     - name: kickoff main site job
       run: |
         curl -s -X POST \
@@ -40,7 +137,4 @@ jobs:
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Authorization: token  ${{ secrets.ACCESS_TOKEN }}" \
           -d '{"event_type": "on-demand-test"}' \
-          https://api.github.com/repos/realoptions/main_site/dispatches
-
-    
-    
+          https://api.github.com/repos/realoptions/developer_site/dispatches

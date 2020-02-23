@@ -1,51 +1,75 @@
 'use strict'
-const {location, timeout}=require('./binaryLocation.json')
-const command=`sudo docker run --rm -v "$PWD":/var/task -i -e DOCKER_LAMBDA_USE_STDIN=1 lambci/lambda:provided -bootstrap ${location}/pricer`
-
-const {exec} = require('child_process')
-const spawnCommand=(jsonFile, callback)=>{
-    exec('cat '+jsonFile+' | '+command, callback)
-}
+const fetch = require('node-fetch')
+const { location, timeout } = require('./binaryLocation.json')
+const { spawn } = require('child_process')
 jest.setTimeout(timeout)
+let server
+beforeAll(() => {
+    server = spawn(location, [], { env: { PORT: '8080' } })
+})
 
-describe('option prices', ()=>{
-    it('returns array of value and points', done=>{
-        spawnCommand('./tests/parameter1.json', (err, result)=>{
-            if(err){
-                throw(err)
-            }
-            const res=JSON.parse(JSON.parse(result).body)
-            expect(Array.isArray(res))
-            expect(res[0].value).toBeDefined()
-            expect(res[0].at_point).toBeDefined()
-            expect(res[0].iv).toBeUndefined()
-            done()
+afterAll(() => {
+    server.kill()
+})
+describe('option prices', () => {
+    it('returns array of value and points', () => {
+        const body = {
+            num_u: 8,
+            rate: 0.1,
+            maturity: 0.5,
+            asset: 38,
+            cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -0.5 },
+            strikes: [100],
+            quantile: 0.01
+        }
+        return fetch(
+            'http://localhost:8080/v2/heston/calculator/put/price',
+            { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
+        ).then(res => res.json()).then(response => {
+            return Promise.all([
+                expect(Array.isArray(response)),
+                expect(response[0].value).toBeDefined(),
+                expect(response[0].at_point).toBeDefined()
+            ])
+        })
+
+    })
+    it('returns array of value, points, and iv', () => {
+        const body = {
+            num_u: 8,
+            rate: 0.1,
+            maturity: 0.5,
+            asset: 38,
+            cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -0.5 },
+            strikes: [100],
+            quantile: 0.01
+        }
+        return fetch(
+            'http://localhost:8080/v2/heston/calculator/put/price?include_implied_volatility=true',
+            { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
+        ).then(res => res.json()).then(response => {
+            return Promise.all([
+                expect(Array.isArray(response)),
+                expect(response[0].value).toBeDefined(),
+                expect(response[0].at_point).toBeDefined(),
+                expect(response[0].iv).toBeTruthy()
+            ])
         })
     })
-    it('returns array of value, points, and iv', done=>{
-        spawnCommand('./tests/parameter2.json', (err, result)=>{
-            if(err){
-                throw(err)
-            }
-            const res=JSON.parse(JSON.parse(result).body)
-            expect(Array.isArray(res))
-            expect(res[0].value).toBeDefined()
-            expect(res[0].at_point).toBeDefined()
-            expect(res[0].iv).toBeDefined()
-            expect(res[0].iv).toBeTruthy()
-            done()
-        })
-    })
-    it('returns error if not all parameters included', done=>{
-        spawnCommand('./tests/pricerError.json', (err, result)=>{
-            if(err){
-                throw(err)
-            }
-            const res=JSON.parse(JSON.parse(result).body)
-            expect(res.err).toBeDefined()
-            expect(res.err).toEqual("Parameter strikes does not exist.")
-            done()
+    it('returns error if not all parameters included', () => {
+        const body = {
+            num_u: 8,
+            rate: 0.1,
+            maturity: 0.5,
+            asset: 38,
+            cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -0.5 },
+            quantile: 0.01
+        }
+        return fetch(
+            'http://localhost:8080/v2/heston/calculator/put/price?include_implied_volatility=true',
+            { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
+        ).then(res => res.json()).then(response => {
+            return expect(response.err).toEqual("Parameter strikes does not exist.")
         })
     })
 })
-
