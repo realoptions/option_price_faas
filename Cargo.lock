@@ -85,16 +85,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cf_dist_utils"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "fang_oost 0.13.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fang_oost 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-complex 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "roots 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -272,16 +271,6 @@ dependencies = [
 name = "either"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "fang_oost"
-version = "0.13.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "num 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-complex 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rayon 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "fang_oost"
@@ -702,7 +691,7 @@ version = "2.0.1"
 dependencies = [
  "approx 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "black_scholes 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cf_dist_utils 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cf_dist_utils 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cf_functions 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "criterion 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "fang_oost 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1223,7 +1212,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 "checksum cast 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "4b9434b9a5aa1450faa3f9cb14ea0e8c53bb5d2b3c1bfd1ab4fc03e9f33fbfb0"
 "checksum cc 1.0.50 (registry+https://github.com/rust-lang/crates.io-index)" = "95e28fa049fda1c330bcf9d723be7663a899c4679724b34c81e9f5a326aab8cd"
-"checksum cf_dist_utils 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "577207eb054820429efa01139685209a49d8f84946233392b2dad9f5b663195b"
+"checksum cf_dist_utils 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ed47b9464f392215c193513411ade9ff7cbba0a615de051f56e6a4621ef7e365"
 "checksum cf_functions 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "91c424222ebc99714cf065d029cbe3061067c18d27b1977170d1bd1520fba730"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 "checksum clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5067f5bb2d80ef5d68b4c87db81601f0b75bca627bc2ef76b141d7b846a3c6d9"
@@ -1241,7 +1230,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum devise_codegen 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "066ceb7928ca93a9bedc6d0e612a8a0424048b0ab1f75971b203d01420c055d7"
 "checksum devise_core 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cf41c59b22b5e3ec0ea55c7847e5f358d340f3a8d6d53a5cf4f1564967f96487"
 "checksum either 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
-"checksum fang_oost 0.13.8 (registry+https://github.com/rust-lang/crates.io-index)" = "fa515a3ccbe3685c87be5abe7a5574cdc29369a78f630136e0faaba28e9c8d84"
 "checksum fang_oost 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ddb33c8779cd0dba1256c80c359d6480480d9aebb4113f974a7f73cfcc813921"
 "checksum fang_oost_option 0.28.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9fc98f9e7a5cb830ae12432e0d7524db775240774dcce2fd6ccedde71ad60ad0"
 "checksum filetime 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1ff6d4dab0aa0c8e6346d46052e93b13a16cf847b54ed357087c35011048cc7d"
