@@ -21,9 +21,9 @@ Additional documentation is available at the [fang_oost_charts](https://github.c
 
 ### Run functions locally
 
-`cargo build --target x86_64-unknown-linux-musl --release`
+`cargo build --release`
 
-`cat ./tests/parameter1.json | sudo docker run --rm -v "$PWD":/var/task -i -e DOCKER_LAMBDA_USE_STDIN=1 lambci/lambda:provided ./target/x86_64-unknown-linux-musl/release/pricer`
+`PORT=8080 ./target/release/pricer`
 
 ## Benchmarks
 
