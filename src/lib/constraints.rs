@@ -461,6 +461,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = Some(0.5);
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -472,6 +473,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = None;
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -483,6 +485,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = Some(5.0);
         let result = check_constraint_option(&parameter, &constraint, "hello");
