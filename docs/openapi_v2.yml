@@ -1742,10 +1742,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               speed:
                 type: object
@@ -1756,10 +1759,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               eta_v:
                 type: object
@@ -1770,10 +1776,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               sigma:
                 type: object
@@ -1784,10 +1793,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               rho:
                 type: object
@@ -1798,10 +1810,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
             additionalProperties: false
           examples:
@@ -1810,22 +1825,27 @@ paths:
                 lower: 0
                 upper: 0.9
                 types: float
+                description: "Square root of mean of variance process"
               speed:
                 lower: 0
                 upper: 2
                 types: float
+                description: "Square root of initial value of the instantaneous variance"
               eta_v:
                 lower: 0
                 upper: 0.5
                 types: float
+                description: "Rate at which variance reverts to mean"
               sigma:
                 lower: 0
                 upper: 1
                 types: float
+                description: "Vol of vol: volatility of instantaneous variance"
               rho:
                 lower: -1
                 upper: 1
                 types: float
+                description: "Correlation between asset and variance diffusions"
         '400':
           description: Error for incorrect request
           schema:
@@ -1855,10 +1875,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               g:
                 type: object
@@ -1869,10 +1892,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               m:
                 type: object
@@ -1883,10 +1909,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               y:
                 type: object
@@ -1897,10 +1926,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               v0:
                 type: object
@@ -1911,10 +1943,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               speed:
                 type: object
@@ -1925,10 +1960,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               eta_v:
                 type: object
@@ -1939,10 +1977,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               sigma:
                 type: object
@@ -1953,10 +1994,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               rho:
                 type: object
@@ -1967,10 +2011,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
             additionalProperties: false
           examples:
@@ -1979,38 +2026,47 @@ paths:
                 lower: 0
                 upper: 10
                 type: float
+                description: "Parameter C from CGMY, controls overall level of jump frequency"
               g:
                 lower: 0
                 upper: 20
                 type: float
+                description: "Parameter G from CGMY, controls rate of decay for left side of asset distribution"
               m:
                 lower: 0
                 upper: 20
                 type: float
+                description: "Parameter M from CGMY, controls rate of decay for right side of asset distribution"
               y:
                 lower: -2
                 upper: 2
                 type: float
+                description: "Parameter Y from CGMY, characterizes fine structure of jumps"
               v0:
                 lower: 0
                 upper: 2
                 type: float
+                description: "Initial value of the time-change diffusion"
               speed:
                 lower: 0
                 upper: 2
                 type: float
+                description: "Rate at which time-change diffusion reverts to mean"
               eta_v:
                 lower: 0
                 upper: 0.5
                 type: float
+                description: "Volatility of time-change diffusion"
               sigma:
                 lower: 0
                 upper: 1
                 type: float
+                description: "Volatility of diffusion component of asset process"
               rho:
                 lower: -1
                 upper: 1
                 type: float
+                description: "Correlation between asset and time-change diffusions"
         '400':
           description: Error for incorrect request
           schema:
@@ -2040,10 +2096,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               mu_l:
                 type: object
@@ -2054,10 +2113,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               sig_l:
                 type: object
@@ -2068,10 +2130,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               v0:
                 type: object
@@ -2082,10 +2147,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               speed:
                 type: object
@@ -2096,10 +2164,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               eta_v:
                 type: object
@@ -2110,10 +2181,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               sigma:
                 type: object
@@ -2124,10 +2198,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               rho:
                 type: object
@@ -2138,10 +2215,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
             additionalProperties: false
           examples:
@@ -2150,34 +2230,42 @@ paths:
                 lower: 0
                 upper: 4
                 types: float
+                description: "Annualized frequency of jumps for the asset process"
               mu_l:
                 lower: 0
                 upper: 1
                 types: float
+                description: "Mean jump size"
               sig_l:
                 lower: 0
                 upper: 0.6
                 types: float
+                description: "Volatility of jump size"
               v0:
                 lower: 0
                 upper: 2
                 types: float
+                description: "Initial value of the time-change diffusion"
               speed:
                 lower: 0
                 upper: 2
                 types: float
+                description: "Rate at which time-change diffusion reverts to mean"
               eta_v:
                 lower: 0
                 upper: 0.5
                 types: float
+                description: "Volatility of time-change diffusion"
               sigma:
                 lower: 0
                 upper: 1
                 types: float
+                description: "Volatility of diffusion component of asset process"
               rho:
                 lower: -1
                 upper: 1
                 types: float
+                description: "Correlation between asset and time-change diffusions"
         '400':
           description: Error for incorrect request
           schema:
@@ -2206,10 +2294,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               asset:
                 type: object
@@ -2220,10 +2311,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               maturity:
                 type: object
@@ -2234,10 +2328,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               num_u:
                 type: object
@@ -2248,10 +2345,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
               quantile:
                 type: object
@@ -2262,10 +2362,13 @@ paths:
                     type: number
                   types:
                     type: string
+                  description:
+                    type: string
                 required:
                 - lower
                 - upper
                 - types
+                - description
                 additionalProperties: false
           examples:
             application/json:
@@ -2273,22 +2376,27 @@ paths:
                 lower: 0
                 upper: 1000000
                 types: float
+                description: "Underlying asset"
               maturity:
                 lower: 0
                 upper: 1000000
                 types: float
+                description: "Time in years till option expiration"
               num_u:
                 lower: 5
                 upper: 10
                 types: int
+                description: "Exponent for the precision of the numeric inversion.  For example, 8 represents 2^8=256."
               quantile:
                 lower: 0
                 upper: 1
                 types: float
+                description: "Quantile of (risk-neutral) distribution of the underlying asset.  For example, 0.05 would map to a 95% VaR."
               rate:
                 lower: 0
                 upper: 0.4
                 types: float
+                description: "Annualized risk-free interest rate"
         '400':
           description: Error for incorrect request
           schema:

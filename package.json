@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/phillyfan1138/option_price_faas#readme",
   "devDependencies": {
-    "jest": "^24.8.0",
+    "husky": "^4.2.3",
+    "jest": "^25.1.0",
     "node-fetch": "^2.6.0"
   }
 }

@@ -69,6 +69,7 @@ pub struct ConstraintsSchema {
     pub lower: f64,
     pub upper: f64,
     pub types: String,
+    pub description: String,
 }
 #[derive(Serialize, Deserialize)]
 pub struct CGMYParameters {
@@ -176,26 +177,31 @@ pub fn get_constraints() -> ParameterConstraints {
             lower: 0.0,
             upper: 0.4,
             types: "float".to_string(),
+            description: "Annualized risk-free interest rate".to_string(),
         },
         asset: ConstraintsSchema {
             lower: 0.0,
             upper: 1000000.0,
             types: "float".to_string(),
+            description: "Underlying asset".to_string(),
         },
         maturity: ConstraintsSchema {
             lower: 0.0,
             upper: 1000000.0,
             types: "float".to_string(),
+            description: "Time in years till option expiration".to_string(),
         },
         num_u: ConstraintsSchema {
             lower: 5.0,
             upper: 10.0,
             types: "int".to_string(),
+            description: "Exponent for the precision of the numeric inversion.  For example, 8 represents 2^8=256.".to_string()
         },
         quantile: ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Quantile of (risk-neutral) distribution of the underlying asset.  For example, 0.05 would map to a 95% VaR.".to_string()
         },
     }
 }
@@ -206,41 +212,49 @@ pub fn get_merton_constraints() -> MertonConstraints {
             lower: 0.0,
             upper: 2.0,
             types: "float".to_string(),
+            description: "Annualized frequency of jumps for the asset process".to_string(),
         },
         mu_l: ConstraintsSchema {
             lower: -1.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Mean jump size".to_string(),
         },
         sig_l: ConstraintsSchema {
             lower: 0.0,
             upper: 2.0,
             types: "float".to_string(),
+            description: "Volatility of jump size".to_string(),
         },
         sigma: ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Volatility of diffusion component of asset process".to_string(),
         },
         v0: ConstraintsSchema {
             lower: 0.2,
             upper: 1.8,
             types: "float".to_string(),
+            description: "Initial value of the time-change diffusion".to_string(),
         },
         speed: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Rate at which time-change diffusion reverts to mean".to_string(),
         },
         eta_v: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Volatility of time-change diffusion".to_string(),
         },
         rho: ConstraintsSchema {
             lower: -1.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Correlation between asset and time-change diffusions".to_string(),
         },
     }
 }
@@ -250,76 +264,94 @@ pub fn get_cgmy_constraints() -> CGMYConstraints {
             lower: 0.0,
             upper: 2.0,
             types: "float".to_string(),
+            description: "Parameter C from CGMY, controls overall level of jump frequency"
+                .to_string(),
         },
         g: ConstraintsSchema {
             lower: 0.0,
             upper: 20.0,
             types: "float".to_string(),
+            description:
+                "Parameter G from CGMY, controls rate of decay for left side of asset distribution"
+                    .to_string(),
         },
         m: ConstraintsSchema {
             lower: 0.0,
             upper: 20.0,
             types: "float".to_string(),
+            description:
+                "Parameter M from CGMY, controls rate of decay for right side of asset distribution"
+                    .to_string(),
         },
         y: ConstraintsSchema {
             lower: -1.0,
             upper: 2.0,
             types: "float".to_string(),
+            description: "Parameter Y from CGMY, characterizes fine structure of jumps".to_string(),
         },
         sigma: ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Volatility of diffusion component of asset process".to_string(),
         },
         v0: ConstraintsSchema {
             lower: 0.2,
             upper: 1.8,
             types: "float".to_string(),
+            description: "Initial value of the time-change diffusion".to_string(),
         },
         speed: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Rate at which time-change diffusion reverts to mean".to_string(),
         },
         eta_v: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Volatility of time-change diffusion".to_string(),
         },
         rho: ConstraintsSchema {
             lower: -1.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Correlation between asset and time-change diffusions".to_string(),
         },
     }
 }
-
 pub fn get_heston_constraints() -> HestonConstraints {
     HestonConstraints {
         sigma: ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Square root of mean of variance process".to_string(),
         },
         v0: ConstraintsSchema {
             lower: 0.001,
             upper: 1.5,
             types: "float".to_string(),
+            description: "Square root of initial value of the instantaneous variance".to_string(),
         },
         speed: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Rate at which variance reverts to mean".to_string(),
         },
         eta_v: ConstraintsSchema {
             lower: 0.0,
             upper: 3.0,
             types: "float".to_string(),
+            description: "Vol of vol: volatility of instantaneous variance".to_string(),
         },
         rho: ConstraintsSchema {
             lower: -1.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "Correlation between asset and variance diffusions".to_string(),
         },
     }
 }
@@ -429,6 +461,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = Some(0.5);
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -440,6 +473,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = None;
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -451,6 +485,7 @@ mod tests {
             lower: 0.0,
             upper: 1.0,
             types: "float".to_string(),
+            description: "hello".to_string(),
         };
         let parameter = Some(5.0);
         let result = check_constraint_option(&parameter, &constraint, "hello");

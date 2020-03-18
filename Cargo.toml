@@ -1,9 +1,9 @@
 [package]
 name = "pricer"
-version = "2.0.1"
+version = "2.1.1"
 authors = ["Daniel Stahl <danstahl1138@gmail.com>"]
-homepage = "https://github.com/phillyfan1138/option_price_faas"
-repository = "https://github.com/phillyfan1138/option_price_faas"
+homepage = "https://github.com/realoptions/option_price_faas"
+repository = "https://github.com/realoptions/option_price_faas"
 readme = "README.md"
 license = "MIT"
 description = "Option pricer"
