@@ -127,7 +127,7 @@ jobs:
           
     - name: Custom domain
       run: |
-        gcloud beta run domain-mappings create --service $SERVICE_NAME --domain $CUSTOM_DOMAIN
+        gcloud beta run domain-mappings create --service $SERVICE_NAME --domain $CUSTOM_DOMAIN --quiet
 
     - name: release files
       uses: ncipollo/release-action@v1
