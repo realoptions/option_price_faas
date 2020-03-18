@@ -9,6 +9,7 @@ env:
   SERVICE_NAME: realoptions
   GATEWAY_SERVICE: realoptions-gateway-lnmfgwrxtq-uc.a.run.app
   CUSTOM_DOMAIN: api2.finside.org
+  CLOUDSDK_CORE_DISABLE_PROMPTS: 1
 jobs:
   release: 
     runs-on: ubuntu-latest
@@ -127,7 +128,7 @@ jobs:
           
     - name: Custom domain
       run: |
-        gcloud beta run domain-mappings create --service $SERVICE_NAME --domain $CUSTOM_DOMAIN --quiet
+        gcloud beta run domain-mappings create --service $SERVICE_NAME --domain $CUSTOM_DOMAIN
 
     - name: release files
       uses: ncipollo/release-action@v1
