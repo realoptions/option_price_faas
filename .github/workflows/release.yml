@@ -126,11 +126,12 @@ jobs:
           --region $RUN_REGION  \
           --project ${PROJECT_ID}
     # had to add service account to verified owners, see https://cloud.google.com/run/docs/mapping-custom-domains
+    # this will error if custom domain already exists, so || true at the end
     - name: Custom domain
       run: |
         gcloud beta run domain-mappings create --service $SERVICE_NAME \
           --domain $CUSTOM_DOMAIN --platform managed --region $RUN_REGION  \
-          --project ${PROJECT_ID}
+          --project ${PROJECT_ID} || true
 
     - name: release files
       uses: ncipollo/release-action@v1
