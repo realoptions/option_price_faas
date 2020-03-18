@@ -125,7 +125,7 @@ jobs:
           --platform managed \
           --region $RUN_REGION  \
           --project ${PROJECT_ID}
-          
+    # had to add service account to verified owners, see https://cloud.google.com/run/docs/mapping-custom-domains
     - name: Custom domain
       run: |
         gcloud beta run domain-mappings create --service $SERVICE_NAME \
