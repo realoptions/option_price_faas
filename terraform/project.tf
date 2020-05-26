@@ -2,6 +2,17 @@ provider "google" {
   project = var.project
   region  = var.region
 }
+provider "google-beta" {
+  project     = var.project
+  region      = var.region
+  credentials = base64decode(google_service_account_key.firebase_key.private_key)
+}
+
+resource "google_endpoints_service" "openapi_service" {
+  service_name   = var.gateway_service_name
+  project        = var.project
+  openapi_config = file("docs/urlsubstitute.yml")
+}
 
 data "google_billing_account" "account" {
   display_name = var.billing_account

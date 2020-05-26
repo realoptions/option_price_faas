@@ -2,9 +2,7 @@
 variable project {}
 variable name {}
 variable location {}
-variable protocol {
-  description = "grpc or http"
-}
+
 variable envs {
   type = list(object({
     name  = string
@@ -19,3 +17,5 @@ variable auth {
 variable dependency {
   type = any
 }
+
+

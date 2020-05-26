@@ -9,3 +9,7 @@ variable "billing_account" {
 variable "repository_name" {
   default = "wild-workouts"
 }
+
+variable "custom_api_domain" {
+  description="name of hostname/domain name for API"
+}

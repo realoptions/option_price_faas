@@ -1,14 +1,10 @@
-name: release
+name: release-tf
 on:
   push:
     tags:
     - '*'
 env:
-  PROJECT_ID: finside
-  RUN_REGION: us-central1
-  SERVICE_NAME: realoptions
-  GATEWAY_SERVICE: realoptions-gateway-lnmfgwrxtq-uc.a.run.app
-  CUSTOM_DOMAIN: api2.finside.org
+  GOOGLE_CLOUD_KEYFILE_JSON: 'service.json' #needed by terraform
   CLOUDSDK_CORE_DISABLE_PROMPTS: 1
 jobs:
   release: 
@@ -147,3 +143,5 @@ jobs:
           -H "Authorization: token  ${{ secrets.ACCESS_TOKEN }}" \
           -d '{"event_type": "on-demand-test"}' \
           https://api.github.com/repos/realoptions/developer_site/dispatches
+
+
