@@ -20,7 +20,7 @@ jobs:
         if: matrix.rust == 'nightly' 
         env:
           CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads
+          RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort
           CRATE_NAME: utils
         run: |
           cargo test --verbose $CARGO_OPTIONS
