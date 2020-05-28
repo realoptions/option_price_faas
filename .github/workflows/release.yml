@@ -27,13 +27,14 @@ jobs:
     - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
         version: '290.0.1'
-        # service_account_email: ${{ secrets.SA_EMAIL }}
         service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS}}
         export_default_credentials: true
         project_id: ${{ env.PROJECT_ID }}
     # Build and push image to Google Container Registry
     - name: Build
       run: |
+        gcloud info 
+        echo this is ${GOOGLE_APPLICATION_CREDENTIALS}
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
 
