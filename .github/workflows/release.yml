@@ -30,7 +30,7 @@ jobs:
         # service_account_email: ${{ secrets.SA_EMAIL }}
         service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS}}
         export_default_credentials: true
-        project_id: $PROJECT_ID
+        project_id: ${{ env.PROJECT_ID }}
     # Build and push image to Google Container Registry
     - name: Build
       run: |
