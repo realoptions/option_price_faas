@@ -1,0 +1,64 @@
+name: release-tf
+on:
+  push:
+    tags:
+    - '*'
+env:
+  CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+  PROJECT_ID: finside #use this as source of truth instead of terraform.tfvars
+  CUSTOM_DOMAIN: api2.finside.org
+  VERSION_MAJOR: 2
+  SERVICE_NAME: realoptions
+jobs:
+  release: 
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: hecrj/setup-rust-action@master
+      with:
+        rust-version: nightly
+
+    - name: Build
+      run: cargo build
+    - name: Run tests nightly
+      run: |
+        cargo test
+
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '275.0.0'
+        service_account_email: ${{ secrets.SA_EMAIL }}
+        service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+
+    # Build and push image to Google Container Registry
+    - name: Build
+      run: |
+        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+
+    - name: Terraform
+      run: |
+        terraform apply -var="custom_api_domain=$CUSTOM_DOMAIN" -var="api_version_major=$VERSION_MAJOR" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME"
+
+    - name: templatize yml
+      run: |
+        export VISIBLE_HOST=$CUSTOM_DOMAIN
+        export HOST=$(terraform output realoptions_gateway_url)
+        source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        mv -f final.yml ./docs/openapi_v2.yml
+
+    - name: release files
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "./target/x86_64-unknown-linux-musl/release/*,./serverless.yml,./docs/openapi_v2.yml"
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: kickoff main site job
+      run: |
+        curl -s -X POST \
+          -H "Content-Type: application/json" \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Authorization: token  ${{ secrets.ACCESS_TOKEN }}" \
+          -d '{"event_type": "on-demand-test"}' \
+          https://api.github.com/repos/realoptions/developer_site/dispatches
+
+

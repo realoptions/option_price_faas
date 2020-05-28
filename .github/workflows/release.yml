@@ -91,7 +91,7 @@ jobs:
     # --role roles/servicemanagement.configEditor
     - name: Swagger
       run: |
-        sed 's/api2.finside.org/realoptions-gateway-lnmfgwrxtq-uc.a.run.app/g' docs/openapi_v2.yml  > docs/urlsubstitute.yml
+        sed "s/$CUSTOM_DOMAIN/$GATEWAY_SERVICE/g" docs/openapi_v2.yml  > docs/urlsubstitute.yml
         gcloud endpoints services deploy docs/urlsubstitute.yml \
           --project $PROJECT_ID
         
