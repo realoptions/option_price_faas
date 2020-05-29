@@ -14,7 +14,7 @@ resource "google_project_service" "cloud_run" {
 
 # gateway container for auth handling
 resource "google_cloud_run_service" "realoptions_gateway" {
-  name     = "realoptions-realoptions_gateway"
+  name     = "realoptions-gateway2"
   location = var.region
   project = var.project
   template {
@@ -62,7 +62,7 @@ resource "google_endpoints_service" "openapi_service" {
     "../docs/openapi_v2.yml",
     {
       VERSION_MAJOR = var.api_version_major
-      HOST = replace(local.realoptions_gateway_url, "https://", "")
+      HOST = local.realoptions_gateway_url
       VISIBLE_HOST = replace(local.realoptions_gateway_url, "https://", "")
       PROJECT_ID = var.project
     }

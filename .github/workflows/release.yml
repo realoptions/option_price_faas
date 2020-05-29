@@ -8,7 +8,7 @@ env:
   PROJECT_ID: finside #use this as source of truth instead of terraform.tfvars
   CUSTOM_DOMAIN: api2.finside.org
   VERSION_MAJOR: 2
-  SERVICE_NAME: realoptions
+  SERVICE_NAME: realoptions2
 jobs:
   release: 
     runs-on: ubuntu-latest
