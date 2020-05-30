@@ -34,8 +34,6 @@ jobs:
     # see https://cloud.google.com/container-registry/docs/advanced-authentication#json-key
     - name: Build
       run: |
-        gcloud info 
-        echo this is ${GOOGLE_APPLICATION_CREDENTIALS}
         cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
@@ -44,7 +42,7 @@ jobs:
       run: |
         cd terraform
         terraform init
-        terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="api_version_major=$VERSION_MAJOR" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME"
+        TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="api_version_major=$VERSION_MAJOR" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME"
         cd ..
     - name: templatize yml
       run: |
