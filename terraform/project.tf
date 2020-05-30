@@ -3,6 +3,21 @@ provider "google" {
   project = var.project
 }
 
+terraform {
+  backend "gcs" {
+    bucket  = "artifacts.finside.appspot.com"
+    prefix  = "terraform/state"
+  }
+}
+
+data "terraform_remote_state" "foo" {
+  backend = "gcs"
+  config = {
+    bucket  = "terraform-state"
+    prefix  = "prod"
+  }
+}
+
 resource "google_project_service" "container_registry" {
   service    = "containerregistry.googleapis.com"
   disable_dependent_services = true
@@ -21,6 +36,10 @@ resource "google_cloud_run_service" "realoptions_gateway" {
     spec {
       containers {
         image = "gcr.io/endpoints-release/endpoints-runtime-serverless:2"
+        env {
+          name = "ESPv2_ARGS"
+          value = "--cors_preset=basic"
+        }
       }
     }
   }
@@ -28,6 +47,7 @@ resource "google_cloud_run_service" "realoptions_gateway" {
     percent         = 100
     latest_revision = true
   }
+  autogenerate_revision_name=true
   depends_on = [google_project_service.cloud_run]
 }
 
@@ -71,7 +91,7 @@ resource "google_endpoints_service" "openapi_service" {
   # Work-around for circular dependency between the Cloud Endpoints and ESP. See
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
   provisioner "local-exec" {
-    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --set-env-vars ENDPOINTS_SERVICE_NAME=${self.service_name} --set-env-vars=ESPv2_ARGS=--cors_preset=basic --project ${var.project} --platform=managed --region=${var.region}"
+    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${self.service_name} --project ${var.project} --platform=managed --region=${var.region}"
   }
 }
 
@@ -92,6 +112,7 @@ resource "google_cloud_run_service" "realoptions" {
     latest_revision = true
   }
   depends_on = [google_project_service.cloud_run]
+  autogenerate_revision_name=true
 }
 
 resource "google_cloud_run_domain_mapping" "domain_mapping" {
