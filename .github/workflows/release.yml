@@ -48,6 +48,7 @@ jobs:
       run: |
         export VISIBLE_HOST=$CUSTOM_DOMAIN
         export HOST=$(terraform output realoptions_gateway_url)
+        echo $HOST
         source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_v2.yml
 
