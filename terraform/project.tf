@@ -10,10 +10,10 @@ terraform {
   }
 }
 
-data "terraform_remote_state" "foo" {
+data "terraform_remote_state" "tfstate" {
   backend = "gcs"
   config = {
-    bucket  = "terraform-state"
+    bucket  = "artifacts.finside.appspot.com"
     prefix  = "prod"
   }
 }
