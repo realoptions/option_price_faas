@@ -47,12 +47,13 @@ jobs:
     - name: templatize yml
       run: |
         cd terraform
-        export VISIBLE_HOST=$CUSTOM_DOMAIN
-        export HOST=$(terraform output realoptions_gateway_url)
-        echo $HOST
+        # export VISIBLE_HOST=$CUSTOM_DOMAIN
+        # export HOST=$(terraform output realoptions_gateway_url)
+        # echo $HOST
+        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_v2.yml; echo EOF;)"
+        mv -f final.yml ../docs/openapi_v2.yml
         cd ..
-        source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
-        mv -f final.yml ./docs/openapi_v2.yml
+        
 
     - name: release files
       uses: ncipollo/release-action@v1
