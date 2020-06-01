@@ -8,9 +8,9 @@ env:
   PROJECT_ID: finside #use this as source of truth instead of terraform.tfvars
   CUSTOM_DOMAIN: api2.finside.org
   VERSION_MAJOR: 2
-  SERVICE_NAME: realoptions2
-  #SERVICE_GATEWAY_NAME: $SERVICE_NAME-gateway
-  #SERVICE_GATEWAY_URL: https://$SERVICE_GATEWAY_NAME-lnmfgwrxtq-uc.a.run.app 
+  SERVICE_NAME: realoptions
+  SERVICE_GATEWAY_NAME: realoptions-gateway
+  SERVICE_GATEWAY_URL: https://realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
 jobs:
   release: 
     runs-on: ubuntu-latest
@@ -40,20 +40,61 @@ jobs:
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
 
-    - name: Terraform
+    # Deploy rust app to Cloud Run
+    - name: Deploy
       run: |
-        cd terraform
-        terraform init
-        TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="api_version_major=$VERSION_MAJOR" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME"
-        cd ..
+        gcloud run deploy $SERVICE_NAME \
+          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          --region $RUN_REGION \
+          --platform managed 
+    
+    - name: Gateway service configuration
+      run: |
+        VISIBLE_HOST=$SERVICE_GATEWAY_URL HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ../docs/openapi_v2.yml; echo EOF;)"
+        gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
+
+    # Hacky, but it works
+    - name: Build API Gateway
+      run: |
+        GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${SERVICE_GATEWAY_NAME} --limit 1 \
+          | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
+        curl --fail -o "service.json" -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+          "https://servicemanagement.googleapis.com/v1/services/${GATEWAY_SERVICE}/configs/${GATEWAY_CONFIG}?view=FULL" 
+        docker build . -f docker/gateway.Dockerfile --tag gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
+        docker push gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
+
+    - name: Deploy Gateway
+      run: |
+        gcloud run deploy ${SERVICE_GATEWAY_NAME} \
+          --image=gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA \
+          --set-env-vars=ESPv2_ARGS=--cors_preset=basic \
+          --allow-unauthenticated \
+          --platform managed \
+          --project $PROJECT_ID \
+          --region $RUN_REGION 
+
+    - name: Policy binding
+      run: |
+        gcloud run services add-iam-policy-binding $SERVICE_NAME \
+          --member "serviceAccount:${{secrets.ESP_PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" \
+          --role "roles/run.invoker" \
+          --platform managed \
+          --region $RUN_REGION  \
+          --project ${PROJECT_ID}
+
     - name: templatize yml
       run: |
-        cd terraform
-        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_v2.yml; echo EOF;)"
-        mv -f final.yml ../docs/openapi_v2.yml
-        cd ..
+        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        mv -f final.yml ./docs/openapi_v2.yml
         cat docs/openapi_v2.yml
-        
+
+    # had to add service account to verified owners, see https://cloud.google.com/run/docs/mapping-custom-domains
+    # this will error if custom domain already exists, so || true at the end
+    - name: Custom domain
+      run: |
+        gcloud beta run domain-mappings create --service $SERVICE_NAME \
+          --domain $CUSTOM_DOMAIN --platform managed --region $RUN_REGION  \
+          --project ${PROJECT_ID} || true
 
     - name: release files
       uses: ncipollo/release-action@v1
