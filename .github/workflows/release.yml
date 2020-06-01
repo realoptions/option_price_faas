@@ -51,7 +51,7 @@ jobs:
     
     - name: Gateway service configuration
       run: |
-        VISIBLE_HOST=$SERVICE_GATEWAY_URL HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ../docs/openapi_v2.yml; echo EOF;)"
+        VISIBLE_HOST=$SERVICE_GATEWAY_URL HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
 
     # Hacky, but it works
