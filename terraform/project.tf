@@ -27,7 +27,8 @@ resource "google_project_service" "cloud_run" {
   service    = "run.googleapis.com"
 }
 
-# gateway container for auth handling
+
+# gateway container for auth handling, dummy to get api url
 resource "google_cloud_run_service" "realoptions_gateway" {
   name     = "realoptions-gateway2"
   location = var.region
@@ -36,10 +37,6 @@ resource "google_cloud_run_service" "realoptions_gateway" {
     spec {
       containers {
         image = "gcr.io/endpoints-release/endpoints-runtime-serverless:2"
-        env {
-          name = "ESPv2_ARGS"
-          value = "--cors_preset=basic"
-        }
       }
     }
   }
@@ -74,7 +71,6 @@ output "realoptions_gateway_url" {
   value = google_cloud_run_service.realoptions_gateway.status[0].url
 }
 
-
 resource "google_endpoints_service" "openapi_service" {
   service_name = replace(local.realoptions_gateway_url, "https://", "")
   project        = var.project
@@ -90,9 +86,19 @@ resource "google_endpoints_service" "openapi_service" {
   depends_on = [google_cloud_run_service.realoptions_gateway]
   # Work-around for circular dependency between the Cloud Endpoints and ESP. See
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
+  # have to redeploy gateway docker
+  # the bash script builds the docker image and redeploys
   provisioner "local-exec" {
-    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${self.service_name} --project ${var.project} --platform=managed --region=${var.region}"
+    command = "build_esp.sh"
+    environment = {
+      GATEWAY_SERVICE = self.service_name
+      PROJECT_ID = var.project
+      GITHUB_SHA = var.github_sha
+      CLOUD_RUN_SERVICE = google_cloud_run_service.realoptions_gateway.name
+      RUN_REGION = var.region
+    }  
   }
+
 }
 
 # actual app logic
@@ -126,7 +132,3 @@ resource "google_cloud_run_domain_mapping" "domain_mapping" {
   }
   depends_on = [google_cloud_run_service.realoptions]
 }
-
-
-
-
