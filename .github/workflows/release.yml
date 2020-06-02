@@ -10,7 +10,7 @@ env:
   VERSION_MAJOR: 2
   SERVICE_NAME: realoptions
   SERVICE_GATEWAY_NAME: realoptions-gateway
-  SERVICE_GATEWAY_URL: https://realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
+  SERVICE_GATEWAY_URL: realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
   RUN_REGION: us-central1
 jobs:
   release: 
