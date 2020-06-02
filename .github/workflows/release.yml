@@ -77,14 +77,15 @@ jobs:
           --project $PROJECT_ID \
           --region $RUN_REGION
 
-    - name: Policy binding
-      run: |
-        gcloud run services add-iam-policy-binding $SERVICE_NAME \
-          --member "serviceAccount:${{secrets.ESP_PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" \
-          --role "roles/run.invoker" \
-          --platform managed \
-          --region $RUN_REGION  \
-          --project ${PROJECT_ID}
+    # shouldn't need this, https://cloud.google.com/endpoints/docs/openapi/get-started-cloud-run
+    #- name: Policy binding
+    #  run: |
+    #    gcloud run services add-iam-policy-binding $SERVICE_NAME \
+    #      --member "serviceAccount:${{secrets.ESP_PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" \
+    #      --role "roles/run.invoker" \
+    #      --platform managed \
+    #      --region $RUN_REGION  \
+    #      --project ${PROJECT_ID}
 
     - name: templatize yml
       run: |
@@ -96,7 +97,7 @@ jobs:
     # this will error if custom domain already exists, so || true at the end
     - name: Custom domain
       run: |
-        gcloud beta run domain-mappings create --service $SERVICE_NAME \
+        gcloud beta run domain-mappings create --service $SERVICE_GATEWAY_NAME \
           --domain $CUSTOM_DOMAIN --platform managed --region $RUN_REGION  \
           --project ${PROJECT_ID} || true
 
