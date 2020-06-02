@@ -9,7 +9,7 @@ env:
   CUSTOM_DOMAIN: api2.finside.org
   VERSION_MAJOR: 2
   SERVICE_NAME: realoptions
-  SERVICE_NAME_URL: realoptions-lnmfgwrxtq-uc.a.run.ap
+  SERVICE_NAME_URL: realoptions-lnmfgwrxtq-uc.a.run.app
   SERVICE_GATEWAY_NAME: realoptions-gateway
   SERVICE_ENDPOINTS_NAME: realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
   RUN_REGION: us-central1
