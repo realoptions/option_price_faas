@@ -9,6 +9,7 @@ env:
   CUSTOM_DOMAIN: api2.finside.org
   VERSION_MAJOR: 2
   SERVICE_NAME: realoptions
+  SERVICE_NAME_URL: realoptions-lnmfgwrxtq-uc.a.run.ap
   SERVICE_GATEWAY_NAME: realoptions-gateway
   SERVICE_ENDPOINTS_NAME: realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
   RUN_REGION: us-central1
@@ -51,7 +52,7 @@ jobs:
     
     - name: Gateway service configuration
       run: |
-        VISIBLE_HOST=$SERVICE_ENDPOINTS_NAME HOST=$SERVICE_ENDPOINTS_NAME source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        VISIBLE_HOST=$SERVICE_ENDPOINTS_NAME HOST=$SERVICE_NAME_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
 
     # Hacky, but it works.  Code comes from google
@@ -86,7 +87,7 @@ jobs:
 
     - name: templatize yml
       run: |
-        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$SERVICE_ENDPOINTS_NAME source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$SERVICE_NAME_URL source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_v2.yml
         cat docs/openapi_v2.yml
 

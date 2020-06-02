@@ -8,7 +8,8 @@ info:
 
 # when deploying this to the developer portal, VISIBLE_HOST 
 # should be the redirected url (minus the https://).  
-# when deploying to gcp, this should be the same as HOST
+# when deploying to gcp, this should be the gateway url
+# HOST should always be the non-gateway url
 host: ${VISIBLE_HOST} 
 basePath: "/v${VERSION_MAJOR}"
 schemes:
