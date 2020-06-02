@@ -54,13 +54,14 @@ jobs:
         VISIBLE_HOST=$SERVICE_GATEWAY_URL HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
 
-    # Hacky, but it works
+    # Hacky, but it works.  Code comes from google
+    # https://github.com/GoogleCloudPlatform/esp-v2/blob/master/docker/serverless/gcloud_build_image#L43-L45
     - name: Build API Gateway
       run: |
         GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${SERVICE_GATEWAY_URL} --limit 1 \
           | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
         curl --fail -o "service.json" -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-          "https://servicemanagement.googleapis.com/v1/services/${GATEWAY_SERVICE}/configs/${GATEWAY_CONFIG}?view=FULL" 
+          "https://servicemanagement.googleapis.com/v1/services/${SERVICE_GATEWAY_URL}/configs/${GATEWAY_CONFIG}?view=FULL" 
         docker build . -f docker/gateway.Dockerfile --tag gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
         docker push gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
 
