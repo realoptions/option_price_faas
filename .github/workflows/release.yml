@@ -63,18 +63,16 @@ jobs:
           | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
         curl --fail -o "service.json" -H "Authorization: Bearer $(gcloud auth print-access-token)" \
           "https://servicemanagement.googleapis.com/v1/services/${SERVICE_ENDPOINTS_NAME}/configs/${GATEWAY_CONFIG}?view=FULL" 
-        docker build . -f docker/gateway.Dockerfile --tag gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
-        docker push gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
-
-    - name: Deploy Gateway
-      run: |
+        DOCKERTAG=gcr.io/${PROJECT_ID}/endpoints-runtime-serverless:${SERVICE_ENDPOINTS_NAME}-${GATEWAY_CONFIG}
+        docker build . -f docker/gateway.Dockerfile --tag $DOCKERTAG
+        docker push $DOCKERTAG
         gcloud run deploy ${SERVICE_GATEWAY_NAME} \
-          --image=gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA \
+          --image=$DOCKERTAG \
           --set-env-vars=ESPv2_ARGS=--cors_preset=basic \
           --allow-unauthenticated \
           --platform managed \
           --project $PROJECT_ID \
-          --region $RUN_REGION 
+          --region $RUN_REGION
 
     - name: Policy binding
       run: |
