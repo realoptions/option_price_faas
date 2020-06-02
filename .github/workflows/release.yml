@@ -54,9 +54,12 @@ jobs:
       run: |
         VISIBLE_HOST=$SERVICE_ENDPOINTS_NAME HOST=$SERVICE_NAME_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
+        cat gatewayservice.yml
+        rm gatewayservice.yml
 
     # Hacky, but it works.  Code comes from google
     # https://github.com/GoogleCloudPlatform/esp-v2/blob/master/docker/serverless/gcloud_build_image#L43-L45
+    # tag format is required (can't update the name of the docker tag)
     - name: Build API Gateway
       run: |
         GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${SERVICE_ENDPOINTS_NAME} --limit 1 \
