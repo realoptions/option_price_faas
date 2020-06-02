@@ -10,7 +10,7 @@ env:
   VERSION_MAJOR: 2
   SERVICE_NAME: realoptions
   SERVICE_GATEWAY_NAME: realoptions-gateway
-  SERVICE_GATEWAY_URL: realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
+  SERVICE_ENDPOINTS_NAME: realoptions-gateway-lnmfgwrxtq-uc.a.run.app 
   RUN_REGION: us-central1
 jobs:
   release: 
@@ -51,17 +51,17 @@ jobs:
     
     - name: Gateway service configuration
       run: |
-        VISIBLE_HOST=$SERVICE_GATEWAY_URL HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        VISIBLE_HOST=$SERVICE_ENDPOINTS_NAME HOST=$SERVICE_ENDPOINTS_NAME source /dev/stdin <<<"$(echo 'cat <<EOF >gatewayservice.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         gcloud endpoints services deploy gatewayservice.yml --project $PROJECT_ID
 
     # Hacky, but it works.  Code comes from google
     # https://github.com/GoogleCloudPlatform/esp-v2/blob/master/docker/serverless/gcloud_build_image#L43-L45
     - name: Build API Gateway
       run: |
-        GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${SERVICE_GATEWAY_URL} --limit 1 \
+        GATEWAY_CONFIG=$(gcloud endpoints configs list --service ${SERVICE_ENDPOINTS_NAME} --limit 1 \
           | grep $(date +'%Y-%m-%d') | head -n1 | awk '{print $1;}')
         curl --fail -o "service.json" -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-          "https://servicemanagement.googleapis.com/v1/services/${SERVICE_GATEWAY_URL}/configs/${GATEWAY_CONFIG}?view=FULL" 
+          "https://servicemanagement.googleapis.com/v1/services/${SERVICE_ENDPOINTS_NAME}/configs/${GATEWAY_CONFIG}?view=FULL" 
         docker build . -f docker/gateway.Dockerfile --tag gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
         docker push gcr.io/${PROJECT_ID}/${SERVICE_GATEWAY_NAME}:$GITHUB_SHA
 
@@ -86,7 +86,7 @@ jobs:
 
     - name: templatize yml
       run: |
-        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$SERVICE_GATEWAY_URL source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_DOMAIN HOST=$SERVICE_ENDPOINTS_NAME source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_v2.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_v2.yml
         cat docs/openapi_v2.yml
 
