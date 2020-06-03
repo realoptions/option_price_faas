@@ -42,6 +42,7 @@ jobs:
     - name: terraform 
       run: |
         cd terraform
+        terraform init
         TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="api_version_major=$VERSION_MAJOR" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME"
         cd ..
     - name: templatize yml
