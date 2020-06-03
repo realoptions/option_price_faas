@@ -3,6 +3,21 @@ provider "google" {
   project = var.project
 }
 
+terraform {
+  backend "gcs" {
+    bucket  = "artifacts.finside.appspot.com"
+    prefix  = "terraform/state"
+  }
+}
+
+data "terraform_remote_state" "tfstate" {
+  backend = "gcs"
+  config = {
+    bucket  = "artifacts.finside.appspot.com"
+    prefix  = "prod"
+  }
+}
+
 resource "google_project_service" "container_registry" {
   service    = "containerregistry.googleapis.com"
   disable_dependent_services = true
