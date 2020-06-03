@@ -71,25 +71,25 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 locals {
-  realoptions_gateway_url = google_cloud_run_service.realoptions_gateway.status[0].url
+  realoptions_gateway_url = replace(google_cloud_run_service.realoptions_gateway.status[0].url, "https://", "")
 }
 locals {
-  realoptions_url = google_cloud_run_service.realoptions.status[0].url
+  realoptions_url = replace(google_cloud_run_service.realoptions.status[0].url, "https://", "")
 }
 output "realoptions_gateway_url" {
-  value = google_cloud_run_service.realoptions_gateway.status[0].url
+  value = replace(google_cloud_run_service.realoptions_gateway.status[0].url, "https://", "")
 }
 
 
 resource "google_endpoints_service" "openapi_service" {
-  service_name = replace(local.realoptions_gateway_url, "https://", "")
+  service_name = local.realoptions_gateway_url
   project        = var.project
   openapi_config = templatefile(
     "../docs/openapi_v2.yml",
     {
       VERSION_MAJOR = var.api_version_major
-      HOST = replace(local.realoptions_url, "https://", "")
-      VISIBLE_HOST = replace(local.realoptions_gateway_url, "https://", "")
+      HOST = local.realoptions_url
+      VISIBLE_HOST = local.realoptions_gateway_url
       PROJECT_ID = var.project
     }
   )
@@ -98,7 +98,7 @@ resource "google_endpoints_service" "openapi_service" {
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
   provisioner "local-exec" {
     # https://cloud.google.com/endpoints/docs/openapi/get-started-cloud-run
-    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${replace(local.realoptions_gateway_url, "https://", "")} --project ${var.project} --platform=managed --region=${var.region}"
+    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
   }
 }
 
