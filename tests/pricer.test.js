@@ -4,8 +4,9 @@ const { location, timeout } = require('./binaryLocation.json')
 const { spawn } = require('child_process')
 jest.setTimeout(timeout)
 let server
+const port = '8090'
 beforeAll(() => {
-    server = spawn(location, [], { env: { PORT: '8080' } })
+    server = spawn(location, [], { env: { PORT: port } })
 })
 
 afterAll(() => {
@@ -23,7 +24,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            'http://localhost:8080/v2/heston/calculator/put/price',
+            `http://localhost:${port}/v2/heston/calculator/put/price`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -45,7 +46,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            'http://localhost:8080/v2/heston/calculator/put/price?include_implied_volatility=true',
+            `http://localhost:${port}/v2/heston/calculator/put/price?include_implied_volatility=true`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -66,7 +67,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            'http://localhost:8080/v2/heston/calculator/put/price?include_implied_volatility=true',
+            `http://localhost:${port}/v2/heston/calculator/put/price?include_implied_volatility=true`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.err).toEqual("Parameter strikes does not exist.")

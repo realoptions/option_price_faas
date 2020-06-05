@@ -4,8 +4,9 @@ const fetch = require('node-fetch')
 const { spawn } = require('child_process')
 jest.setTimeout(timeout)
 let server
+const port = '8070'
 beforeAll(() => {
-    server = spawn(location, [], { env: { PORT: '8080' } })
+    server = spawn(location, [], { env: { PORT: port } })
 })
 
 afterAll(() => {
@@ -14,7 +15,7 @@ afterAll(() => {
 describe('risk_measures', () => {
     it('returns constraints for cgmy', () => {
         return fetch(
-            'http://localhost:8080/v2/cgmy/parameters/parameter_ranges',
+            `http://localhost:${port}/v2/cgmy/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.c).toBeTruthy()
@@ -22,7 +23,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for heston', () => {
         return fetch(
-            'http://localhost:8080/v2/heston/parameters/parameter_ranges',
+            `http://localhost:${port}/v2/heston/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -36,7 +37,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for merton', () => {
         return fetch(
-            'http://localhost:8080/v2/merton/parameters/parameter_ranges',
+            `http://localhost:${port}/v2/merton/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.mu_l).toBeTruthy()
@@ -45,7 +46,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for market', () => {
         return fetch(
-            'http://localhost:8080/v2/market/parameters/parameter_ranges',
+            `http://localhost:${port}/v2/market/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.asset).toBeTruthy()
