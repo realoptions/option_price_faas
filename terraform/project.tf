@@ -118,6 +118,9 @@ locals {
 output "realoptions_gateway_url" {
   value = replace(google_cloud_run_service.realoptions_gateway.status[0].url, "https://", "")
 }
+output "realoptions_rapidapi_url" {
+  value = replace(google_cloud_run_service.realoptions_rapidapi.status[0].url, "https://", "")
+}
 
 
 resource "google_endpoints_service" "openapi_service" {
@@ -137,7 +140,7 @@ resource "google_endpoints_service" "openapi_service" {
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
   provisioner "local-exec" {
     # https://cloud.google.com/endpoints/docs/openapi/get-started-cloud-run
-    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
+    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --set-env-vars ESPv2_ARGS='--cors_preset=basic' ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
   }
 }
 
