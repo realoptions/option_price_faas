@@ -61,7 +61,7 @@ jobs:
         cd ..
 
         VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_rapidapi.yml; echo EOF;)"
-        mv -f final.yml ../docs/openapi_rapidapi.yml   
+        mv -f final.yml ./docs/openapi_rapidapi.yml   
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0
