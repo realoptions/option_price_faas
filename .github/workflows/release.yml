@@ -64,6 +64,8 @@ jobs:
         mv -f final.yml ./docs/openapi_rapidapi.yml
         cat ./docs/openapi_rapidapi.yml
 
+        ls -la ./docs
+
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0
       env:
