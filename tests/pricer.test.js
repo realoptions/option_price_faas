@@ -24,7 +24,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/heston/calculator/put/price`,
+            `http://localhost:${port}/v2/heston/calculator/put/price`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -46,7 +46,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/heston/calculator/put/price?include_implied_volatility=true`,
+            `http://localhost:${port}/v2/heston/calculator/put/price?include_implied_volatility=true`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -67,7 +67,7 @@ describe('option prices', () => {
             quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/heston/calculator/put/price?include_implied_volatility=true`,
+            `http://localhost:${port}/v2/heston/calculator/put/price?include_implied_volatility=true`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.err).toEqual("Parameter strikes does not exist.")

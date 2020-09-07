@@ -6,9 +6,9 @@ on:
 env:
   CLOUDSDK_CORE_DISABLE_PROMPTS: 1
   PROJECT_ID: finside #use this as source of truth instead of terraform.tfvars
-  CUSTOM_DOMAIN: api2.finside.org
-  GCP_VERSION: v2
-  RAPID_API_VERSION: v3
+  CUSTOM_GCP_DOMAIN: api2.finside.org
+  CUSTOM_RAPID_API_DOMAIN: api3.finside.org
+  MAJOR_VERSION: v2
   SERVICE_NAME: realoptions2
   SERVICE_AUTH_NAME: realoptions2-auth
 
@@ -48,17 +48,17 @@ jobs:
       run: |
         cd terraform
         terraform init
-        TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="gcp_api_version=$GCP_VERSION" -var="rapid_api_version=$RAPID_API_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
+        TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="gcp_api_version=$GCP_VERSION" -var="rapid_api_version=$RAPID_API_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ..
     - name: templatize yml
       run: |
         cd terraform
-        VISIBLE_HOST=$CUSTOM_DOMAIN VERSION_MAJOR=$GCP_VERSION HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_gcp.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_gcp.yml; echo EOF;)"
         mv -f final.yml ../docs/openapi_gcp.yml
         cat ../docs/openapi_gcp.yml
         cd ..
 
-        VISIBLE_HOST=$CUSTOM_DOMAIN VERSION_MAJOR=$RAPID_API_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_rapidapi.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_rapidapi.yml; echo EOF;)"
         mv -f final.yml ../docs/openapi_rapidapi.yml
 
     - name: release files

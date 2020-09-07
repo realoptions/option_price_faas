@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .port(port)
         .finalize()?;
     rocket::custom(config)
-        .mount("/", routes![parameters, calculator, density, risk_metric])
+        .mount("/v2", routes![parameters, calculator, density, risk_metric])
         .launch();
 
     Ok(())
