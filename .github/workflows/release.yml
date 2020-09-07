@@ -81,6 +81,10 @@ jobs:
         draft: false
         prerelease: false
 
+      
+
+
+
     - name: Upload rapidapi yaml
       uses: actions/upload-release-asset@v1
       env:
@@ -89,7 +93,7 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./docs/openapi_rapidapi.yml
         asset_name: openapi_rapidapi.yml
-        asset_content_type: text/yaml
+        asset_content_type: text/plain
 
     - name: Upload gcp yaml
       uses: actions/upload-release-asset@v1
@@ -99,7 +103,7 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./docs/openapi_gcp.yml
         asset_name: openapi_gcp.yml
-        asset_content_type: text/yaml
+        asset_content_type: text/plain
 
     - name: provision rapid api
       run: |
