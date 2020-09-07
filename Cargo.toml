@@ -23,6 +23,7 @@ cf_functions = "0.14"
 num-complex = "0.2"
 rocket = "0.4.2"
 rocket_contrib = "0.4.2"
+sha2 = "0.9.1"
 
 [dev-dependencies]
 rand = "0.5"
@@ -36,6 +37,9 @@ codecov = { repository = "realoptions/option_price_faas", branch = "master", ser
 name = "option_price"
 path = "src/bin/option_price.rs"
 
+[[bin]]
+name = "option_price_auth"
+path = "src/bin/option_price_auth.rs"
 
 [lib]
 name = "utils"
