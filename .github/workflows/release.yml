@@ -48,7 +48,7 @@ jobs:
       run: |
         cd terraform
         terraform init
-        TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="gcp_api_version=$GCP_VERSION" -var="rapid_api_version=$RAPID_API_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME -var="service_name_auth=$SERVICE_AUTH_NAME"
+        TF_LOG=debug terraform apply -auto-approve -var="custom_api_domain=$CUSTOM_DOMAIN" -var="gcp_api_version=$GCP_VERSION" -var="rapid_api_version=$RAPID_API_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ..
     - name: templatize yml
       run: |
