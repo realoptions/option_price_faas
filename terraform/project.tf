@@ -121,7 +121,7 @@ resource "google_endpoints_service" "openapi_service" {
   service_name = local.realoptions_gateway_url
   project        = var.project
   openapi_config = templatefile(
-    "../docs/openapi_v2.yml",
+    "../docs/openapi_gcp.yml",
     {
       VERSION_MAJOR = var.gcp_api_version
       HOST = local.realoptions_url
@@ -141,7 +141,7 @@ resource "google_endpoints_service" "openapi_service" {
 
 
 resource "google_cloud_run_domain_mapping" "domain_mapping" {
-  name = var.custom_api_domain+"/"+var.gcp_api_version
+  name = "${var.custom_api_domain}/${var.gcp_api_version}"
   location = var.region
   spec {
     route_name = google_cloud_run_service.realoptions_gateway.name
@@ -152,8 +152,8 @@ resource "google_cloud_run_domain_mapping" "domain_mapping" {
   depends_on = [google_cloud_run_service.realoptions_gateway]
 }
 
-resource "google_cloud_run_domain_mapping" "domain_mapping" {
-  name = var.custom_api_domain+"/"+var.rapid_api_version
+resource "google_cloud_run_domain_mapping" "domain_mapping_rapid_api" {
+  name = "${var.custom_api_domain}/${var.rapid_api_version}"
   location = var.region
   spec {
     route_name = google_cloud_run_service.realoptions_rapidapi.name
