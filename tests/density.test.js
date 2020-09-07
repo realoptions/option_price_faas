@@ -23,7 +23,7 @@ describe('density', () => {
             quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/v2/heston/density`,
+            `http://localhost:${port}/heston/density`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -40,7 +40,7 @@ describe('density', () => {
             cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -0.5 }
         }
         return fetch(
-            `http://localhost:${port}/v2/heston/density`,
+            `http://localhost:${port}/heston/density`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.err).toEqual("parse error missing field `rate` at line 1 column 100, received {\"num_u\":8,\"maturity\":0.5,\"cf_parameters\":{\"sigma\":0.5,\"speed\":0.1,\"v0\":0.2,\"eta_v\":0.1,\"rho\":-0.5}}")
