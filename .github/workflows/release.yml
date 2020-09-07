@@ -35,6 +35,8 @@ jobs:
     # see https://cloud.google.com/container-registry/docs/advanced-authentication#json-key
     - name: Build
       run: |
+        rustup target add x86_64-unknown-linux-musl
+        cargo build --release --target x86_64-unknown-linux-musl
         cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA

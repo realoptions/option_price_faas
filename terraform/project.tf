@@ -38,6 +38,35 @@ resource "google_cloud_run_service" "realoptions" {
   depends_on = [google_project_service.cloud_run]
 }
 
+
+# rapidapi logic 
+resource "google_cloud_run_service" "realoptionsrapidapi" {
+  name     = var.service_name
+  location = var.region
+  project = var.project
+  template {
+    spec {
+      containers {
+        image = "gcr.io/${var.project}/${var.service_name}:${var.github_sha}"
+      }
+    }
+  }
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+  depends_on = [google_project_service.cloud_run]
+}
+# Enable public access on endpoints Cloud Run service
+data "google_iam_policy" "realoptionsrapidapi" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      "allUsers",
+    ]
+  }
+}
+
 # gateway container for auth handling
 resource "google_cloud_run_service" "realoptions_gateway" {
   name     = "${var.service_name}-gateway"
