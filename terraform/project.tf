@@ -35,6 +35,7 @@ resource "google_cloud_run_service" "realoptions" {
     percent         = 100
     latest_revision = true
   }
+  autogenerate_revision_name=true
   depends_on = [google_project_service.cloud_run]
 }
 
@@ -55,6 +56,7 @@ resource "google_cloud_run_service" "realoptions_rapidapi" {
     percent         = 100
     latest_revision = true
   }
+  autogenerate_revision_name=true
   depends_on = [google_project_service.cloud_run]
 }
 
@@ -79,6 +81,7 @@ resource "google_cloud_run_service" "realoptions_gateway" {
     percent         = 100
     latest_revision = true
   }
+  autogenerate_revision_name=true
   depends_on = [google_project_service.cloud_run]
 }
 
