@@ -75,7 +75,6 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: ./docs/*.yml
-        asset_name: mything
         tag: ${{ steps.tag_bump.outputs.new_tag }}
         release_name: release ${{ steps.tag_bump.outputs.new_tag }}
         overwrite: true
