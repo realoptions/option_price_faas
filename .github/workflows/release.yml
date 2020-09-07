@@ -66,7 +66,15 @@ jobs:
       with:
         artifacts: "./target/x86_64-unknown-linux-musl/release/*,./serverless.yml,./docs/openapi_gcp.yml,./docs/openapi_rapidapi.yml"
         token: ${{ secrets.ACCESS_TOKEN }}
-    
+    - name: provision rapid api
+      run: |
+        curl --request POST 
+        --url https://openapi-provisioning.p.rapidapi.com/v1/apis 
+        --header 'content-type: multipart/form-data' 
+        --header 'x-rapidapi-host: openapi-provisioning.p.rapidapi.com' 
+        --header 'x-rapidapi-key: ${{ secrets.RAPID_API_TOKEN }}' 
+        --form 'file=@docs/openapi_rapidapi.yml'
+
     - name: kickoff main site job
       run: |
         curl -s -X POST \
@@ -76,4 +84,4 @@ jobs:
           -d '{"event_type": "on-demand-test"}' \
           https://api.github.com/repos/realoptions/developer_site/dispatches
 
-
+    
