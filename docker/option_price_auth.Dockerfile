@@ -3,7 +3,6 @@ RUN rustup target add x86_64-unknown-linux-musl
 WORKDIR /usr/src/optionprice
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-#RUN cargo build --release
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 

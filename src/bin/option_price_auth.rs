@@ -12,7 +12,7 @@ const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
 use utils::{auth, constraints, maps};
 
-#[get("/v2/<model>/parameters/parameter_ranges")]
+#[get("/<model>/parameters/parameter_ranges")]
 pub fn parameters(_key: auth::ApiKey, model: &RawStr) -> JsonValue {
     match model.as_str() {
         "heston" => json!(constraints::get_heston_constraints()),
@@ -23,7 +23,7 @@ pub fn parameters(_key: auth::ApiKey, model: &RawStr) -> JsonValue {
 }
 
 #[post(
-    "/v2/<_model>/calculator/<option_type>/<sensitivity>?<include_implied_volatility>",
+    "/<_model>/calculator/<option_type>/<sensitivity>?<include_implied_volatility>",
     data = "<parameters>"
 )]
 pub fn calculator(
@@ -66,7 +66,7 @@ pub fn calculator(
     Ok(json!(results))
 }
 
-#[post("/v2/<_model>/density", data = "<parameters>")]
+#[post("/<_model>/density", data = "<parameters>")]
 pub fn density(
     _key: auth::ApiKey,
     _model: &RawStr,
@@ -91,7 +91,7 @@ pub fn density(
     Ok(json!(results))
 }
 
-#[post("/v2/<_model>/riskmetric", data = "<parameters>")]
+#[post("/<_model>/riskmetric", data = "<parameters>")]
 pub fn risk_metric(
     _key: auth::ApiKey,
     _model: &RawStr,

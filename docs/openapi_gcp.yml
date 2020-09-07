@@ -11,7 +11,7 @@ info:
 # when deploying to gcp, this should be the gateway url
 # HOST should always be the non-gateway url
 host: ${VISIBLE_HOST} 
-basePath: "/v${VERSION_MAJOR}"
+basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
 produces:
