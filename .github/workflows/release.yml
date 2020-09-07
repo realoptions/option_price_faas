@@ -10,7 +10,7 @@ env:
   GCP_VERSION: v2
   RAPID_API_VERSION: v3
   SERVICE_NAME: realoptions2
-  SERVICE_AUTH_NAME: realoptions2_auth
+  SERVICE_AUTH_NAME: realoptions2-auth
 
 jobs:
   release: 
