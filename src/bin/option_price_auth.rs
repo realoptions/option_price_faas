@@ -1,3 +1,4 @@
+//For use with rapidapi
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use]
 extern crate rocket;
@@ -9,10 +10,10 @@ use rocket_contrib::json::{Json, JsonError, JsonValue};
 use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
-use utils::{constraints, maps};
+use utils::{auth, constraints, maps};
 
 #[get("/<model>/parameters/parameter_ranges")]
-pub fn parameters(model: &RawStr) -> JsonValue {
+pub fn parameters(_key: auth::ApiKey, model: &RawStr) -> JsonValue {
     match model.as_str() {
         "heston" => json!(constraints::get_heston_constraints()),
         "cgmy" => json!(constraints::get_cgmy_constraints()),
@@ -26,6 +27,7 @@ pub fn parameters(model: &RawStr) -> JsonValue {
     data = "<parameters>"
 )]
 pub fn calculator(
+    _key: auth::ApiKey,
     _model: &RawStr,
     option_type: &RawStr,
     sensitivity: &RawStr,
@@ -66,6 +68,7 @@ pub fn calculator(
 
 #[post("/<_model>/density", data = "<parameters>")]
 pub fn density(
+    _key: auth::ApiKey,
     _model: &RawStr,
     parameters: Result<Json<constraints::OptionParameters>, JsonError>,
 ) -> Result<JsonValue, constraints::ParameterError> {
@@ -90,6 +93,7 @@ pub fn density(
 
 #[post("/<_model>/riskmetric", data = "<parameters>")]
 pub fn risk_metric(
+    _key: auth::ApiKey,
     _model: &RawStr,
     parameters: Result<Json<constraints::OptionParameters>, JsonError>,
 ) -> Result<JsonValue, constraints::ParameterError> {

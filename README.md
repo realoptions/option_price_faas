@@ -23,7 +23,7 @@ Additional documentation is available at the [fang_oost_charts](https://github.c
 
 `cargo build --release`
 
-`PORT=8080 ./target/release/pricer`
+`PORT=8080 ./target/release/option_price`
 
 ## Benchmarks
 

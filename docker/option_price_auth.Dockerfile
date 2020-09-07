@@ -11,7 +11,7 @@ FROM scratch
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
 ENV PORT 8080
-COPY --from=build /usr/src/optionprice/target/x86_64-unknown-linux-musl/release/option_price .
+COPY --from=build /usr/src/optionprice/target/x86_64-unknown-linux-musl/release/option_price_auth .
 USER 1000
 # Run the web service on container startup.
-CMD ["/option_price"]
+CMD ["/option_price_auth"]

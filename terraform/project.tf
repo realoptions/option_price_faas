@@ -38,6 +38,27 @@ resource "google_cloud_run_service" "realoptions" {
   depends_on = [google_project_service.cloud_run]
 }
 
+
+# rapidapi logic 
+resource "google_cloud_run_service" "realoptions_rapidapi" {
+  name     = var.service_name_auth
+  location = var.region
+  project = var.project
+  template {
+    spec {
+      containers {
+        image = "gcr.io/${var.project}/${var.service_name_auth}:${var.github_sha}"
+      }
+    }
+  }
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+  depends_on = [google_project_service.cloud_run]
+}
+
+
 # gateway container for auth handling
 resource "google_cloud_run_service" "realoptions_gateway" {
   name     = "${var.service_name}-gateway"
@@ -77,6 +98,14 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   service     = google_cloud_run_service.realoptions_gateway.name
   policy_data = data.google_iam_policy.noauth.policy_data
 }
+
+# Enable public access on endpoints Cloud Run service for rapidapi
+resource "google_cloud_run_service_iam_policy" "realoptions_rapidapi_noauth" {
+  location    = google_cloud_run_service.realoptions_rapidapi.location
+  project     = google_cloud_run_service.realoptions_rapidapi.project
+  service     = google_cloud_run_service.realoptions_rapidapi.name
+  policy_data = data.google_iam_policy.noauth.policy_data
+}
 locals {
   realoptions_gateway_url = replace(google_cloud_run_service.realoptions_gateway.status[0].url, "https://", "")
 }
@@ -94,7 +123,7 @@ resource "google_endpoints_service" "openapi_service" {
   openapi_config = templatefile(
     "../docs/openapi_v2.yml",
     {
-      VERSION_MAJOR = var.api_version_major
+      VERSION_MAJOR = var.gcp_api_version
       HOST = local.realoptions_url
       VISIBLE_HOST = local.realoptions_gateway_url
       PROJECT_ID = var.project
@@ -112,7 +141,7 @@ resource "google_endpoints_service" "openapi_service" {
 
 
 resource "google_cloud_run_domain_mapping" "domain_mapping" {
-  name = var.custom_api_domain
+  name = var.custom_api_domain+"/"+var.gcp_api_version
   location = var.region
   spec {
     route_name = google_cloud_run_service.realoptions_gateway.name
@@ -121,4 +150,16 @@ resource "google_cloud_run_domain_mapping" "domain_mapping" {
     namespace = var.project
   }
   depends_on = [google_cloud_run_service.realoptions_gateway]
+}
+
+resource "google_cloud_run_domain_mapping" "domain_mapping" {
+  name = var.custom_api_domain+"/"+var.rapid_api_version
+  location = var.region
+  spec {
+    route_name = google_cloud_run_service.realoptions_rapidapi.name
+  }
+  metadata {
+    namespace = var.project
+  }
+  depends_on = [google_cloud_run_service.realoptions_rapidapi]
 }
