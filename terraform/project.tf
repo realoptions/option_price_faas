@@ -145,14 +145,21 @@ resource "google_endpoints_service" "openapi_service" {
     }
   )
   depends_on = [google_cloud_run_service.realoptions_gateway]
+  
+}
+resource "null_resource" "cloud_run_workaround" {
   # Work-around for circular dependency between the Cloud Endpoints and ESP. See
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
   provisioner "local-exec" {
     # https://cloud.google.com/endpoints/docs/openapi/get-started-cloud-run
     command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
   }
+  # invalidate state, so this always runs 
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = [google_endpoints_service.openapi_service]
 }
-
 
 
 resource "google_cloud_run_domain_mapping" "domain_mapping" {
