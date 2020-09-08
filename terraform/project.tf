@@ -28,6 +28,10 @@ resource "google_cloud_run_service" "realoptions" {
     spec {
       containers {
         image = "gcr.io/${var.project}/${var.service_name}:${var.github_sha}"
+        env {
+          name = "MAJOR_VERSION"
+          value = var.version_major
+        }
       }
     }
   }
@@ -49,6 +53,10 @@ resource "google_cloud_run_service" "realoptions_rapidapi" {
     spec {
       containers {
         image = "gcr.io/${var.project}/${var.service_name_auth}:${var.github_sha}"
+        env {
+          name = "MAJOR_VERSION"
+          value = var.version_major
+        }
       }
     }
   }
@@ -74,6 +82,7 @@ resource "google_cloud_run_service" "realoptions_gateway" {
           name = "ESPv2_ARGS"
           value = "--cors_preset=basic"
         }
+        
       }
     }
   }
