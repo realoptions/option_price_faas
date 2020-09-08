@@ -40,17 +40,16 @@ jobs:
     - name: Build
       run: |
         cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
-        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA --build-arg MAJOR_VERSION=$MAJOR_VERSION
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
-
-        docker build . -f docker/option_price_auth.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA
+        docker build . -f docker/option_price_auth.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA --build-arg MAJOR_VERSION=$MAJOR_VERSION
         docker push gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA
 
     - name: terraform 
       run: |
         cd terraform
         terraform init
-        TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="gcp_api_version=$GCP_VERSION" -var="rapid_api_version=$RAPID_API_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
+        TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="version_major=$MAJOR_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ..
     - name: templatize yml
       run: |

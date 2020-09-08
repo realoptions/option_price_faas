@@ -129,7 +129,7 @@ resource "google_endpoints_service" "openapi_service" {
   openapi_config = templatefile(
     "../docs/openapi_gcp.yml",
     {
-      VERSION_MAJOR = var.gcp_api_version
+      VERSION_MAJOR = var.version_major
       HOST = local.realoptions_url
       VISIBLE_HOST = local.realoptions_gateway_url
       PROJECT_ID = var.project
@@ -140,7 +140,7 @@ resource "google_endpoints_service" "openapi_service" {
   # https://github.com/terraform-providers/terraform-provider-google/issues/5528
   provisioner "local-exec" {
     # https://cloud.google.com/endpoints/docs/openapi/get-started-cloud-run
-    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --set-env-vars ESPv2_ARGS='--cors_preset=basic' ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
+    command = "gcloud beta run services update ${google_cloud_run_service.realoptions_gateway.name} --update-env-vars ENDPOINTS_SERVICE_NAME=${local.realoptions_gateway_url} --project ${var.project} --platform=managed --region=${var.region}"
   }
 }
 

@@ -5,8 +5,9 @@ const { spawn } = require('child_process')
 jest.setTimeout(timeout)
 let server
 const port = '8080'
+const version = 'v2'
 beforeAll(() => {
-    server = spawn(location, [], { env: { PORT: port } })
+    server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
 })
 afterAll(() => {
     server.kill()

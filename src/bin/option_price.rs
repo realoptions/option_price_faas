@@ -121,13 +121,17 @@ pub fn risk_metric(
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let port_str = env::var("PORT")?;
+    let mount_point = env::var("MAJOR_VERSION")?;
     let port = port_str.parse::<u16>()?;
     let config = Config::build(Environment::Production)
         .address("0.0.0.0")
         .port(port)
         .finalize()?;
     rocket::custom(config)
-        .mount("/v2", routes![parameters, calculator, density, risk_metric])
+        .mount(
+            format!("/{}", mount_point.as_str()).as_str(),
+            routes![parameters, calculator, density, risk_metric],
+        )
         .launch();
 
     Ok(())
