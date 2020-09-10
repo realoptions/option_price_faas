@@ -83,8 +83,8 @@ jobs:
       
     - name: provision rapid api
       run: |
-        curl --request POST \
-        --url https://openapi-provisioning.p.rapidapi.com/v1/apis \
+        curl --request PUT \
+        --url https://openapi-provisioning.p.rapidapi.com/v1/apis/api_f9710e26-84c3-4c75-88ce-8ee99f9a3985 \
         --header 'content-type: multipart/form-data' \
         --header 'x-rapidapi-host: openapi-provisioning.p.rapidapi.com' \
         --header 'x-rapidapi-key: ${{ secrets.RAPID_API_TOKEN }}' \
