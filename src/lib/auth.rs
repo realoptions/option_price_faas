@@ -9,7 +9,7 @@ pub struct ApiKey(String);
 /// Returns true if `key` is a valid API key string.
 fn is_valid(key: &str) -> bool {
     let result = Sha256::new().chain(key).finalize();
-    result.as_slice() == hex!("3cfb19bbd129ebbaa28ea4368d7fe4329e193c4a5d108002b771104e35fcf172")
+    result.as_slice() == hex!("9bdd78714a3f3076ffacce2672c546f2b38635db97de0c72a8b5aa248df4dbcd")
 }
 
 #[derive(Debug)]
