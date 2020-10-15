@@ -12,6 +12,7 @@ pub enum ErrorType {
     NoConvergence(),
     ValueAtRiskError(String),
     JsonError(String),
+    OptimizationError(String),
 }
 #[derive(Debug, PartialEq, Responder, Serialize)]
 #[response(status = 400, content_type = "json")]
@@ -33,6 +34,7 @@ impl ParameterError {
                 ErrorType::NoConvergence() => format!("Root does not exist for implied volatility"),
                 ErrorType::ValueAtRiskError(message) => format!("{}", message),
                 ErrorType::JsonError(message) => format!("{}", message),
+                ErrorType::OptimizationError(message)=>format!("{}", message)
             }}),
         }
     }
@@ -41,6 +43,11 @@ impl ParameterError {
 impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
     fn from(error: cf_dist_utils::ValueAtRiskError) -> ParameterError {
         ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
+    }
+}
+impl From<argmin::core::Error> for ParameterError {
+    fn from(error: argmin::core::Error) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
     }
 }
 impl From<JsonError<'_>> for ParameterError {
@@ -120,12 +127,6 @@ pub struct OptionParameters {
     pub quantile: Option<f64>,
     pub num_u: usize, //raised to the power of two.  if this is 8, then there will be 2^8=256 discrete "u"
     pub cf_parameters: CFParameters,
-}
-
-pub fn extend_strikes(mut strikes: VecDeque<f64>, asset: f64, x_max: f64) -> Vec<f64> {
-    strikes.push_back((-x_max).exp() * asset);
-    strikes.push_front(x_max.exp() * asset);
-    Vec::from(strikes)
 }
 
 #[derive(Serialize, Deserialize)]
