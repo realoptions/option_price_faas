@@ -1,57 +1,17 @@
-use crate::constraints::{
-    CFParameters, CGMYParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
+use crate::constants::{
+    CALL_DELTA, CALL_GAMMA, CALL_PRICE, CALL_THETA, DENSITY, PUT_DELTA, PUT_GAMMA, PUT_PRICE,
+    PUT_THETA, RISK_MEASURES,
 };
-use argmin::prelude::*;
-use argmin::solver::linesearch::MoreThuenteLineSearch;
-use argmin::solver::quasinewton::LBFGS;
-use fang_oost_option::option_calibration::OptionDataMaturity;
+use crate::constraints::{
+    check_cgmy_parameters, check_heston_parameters, check_merton_parameters, get_cgmy_constraints,
+    get_heston_constraints, get_merton_constraints, throw_no_convergence_error, CFParameters,
+    CGMYParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
+};
+
 use fang_oost_option::option_pricing;
-use finitediff::FiniteDiff;
 use num_complex::Complex;
 use rayon::prelude::*;
 use serde_derive::{Deserialize, Serialize};
-pub const CGMY: i32 = 0;
-pub const MERTON: i32 = 1;
-pub const HESTON: i32 = 2;
-
-pub const PUT_PRICE: i32 = 0;
-pub const CALL_PRICE: i32 = 1;
-
-pub const PUT_DELTA: i32 = 2;
-pub const CALL_DELTA: i32 = 3;
-
-pub const PUT_GAMMA: i32 = 4;
-pub const CALL_GAMMA: i32 = 5;
-
-pub const PUT_THETA: i32 = 6;
-pub const CALL_THETA: i32 = 7;
-
-pub const DENSITY: i32 = 8;
-pub const RISK_MEASURES: i32 = 9;
-
-const CALIBRATION_SCALAR: f64 = 100.0;
-
-/** needed for calibration */
-struct ObjFn<'a> {
-    obj_fn: &'a (dyn Fn(&[f64]) -> f64 + Sync),
-}
-
-impl ArgminOp for ObjFn<'_> {
-    type Param = Vec<f64>;
-    type Output = f64;
-    type Hessian = Vec<f64>;
-    type Jacobian = ();
-    type Float = f64;
-    fn apply(&self, param: &Vec<f64>) -> Result<f64, Error> {
-        let ofn = self.obj_fn;
-        Ok(ofn(&param))
-    }
-
-    fn gradient(&self, param: &Vec<f64>) -> Result<Vec<f64>, Error> {
-        let ofn = self.obj_fn;
-        Ok((*param).central_diff(&|x| ofn(&x)))
-    }
-}
 
 /// Gets indicators for which sensitivity
 /// to retrieve
@@ -67,10 +27,7 @@ impl ArgminOp for ObjFn<'_> {
 /// ).unwrap();
 /// # }
 /// ```
-pub fn get_fn_indicators(
-    option_type: &str,
-    sensitivity: &str,
-) -> Result<i32, crate::constraints::ParameterError> {
+pub fn get_fn_indicators(option_type: &str, sensitivity: &str) -> Result<i32, ParameterError> {
     let combine_types = format!("{}_{}", option_type, sensitivity);
     match combine_types.as_str() {
         "put_price" => Ok(PUT_PRICE),
@@ -83,22 +40,19 @@ pub fn get_fn_indicators(
         "call_theta" => Ok(CALL_THETA),
         "density_" => Ok(DENSITY),
         "riskmetric_" => Ok(RISK_MEASURES),
-        _ => Err(crate::constraints::ParameterError::new(
-            &crate::constraints::ErrorType::FunctionError(combine_types),
-        )),
+        _ => Err(ParameterError::new(&ErrorType::FunctionError(
+            combine_types,
+        ))),
     }
 }
 
 fn get_cgmy_cf(
-    cf_parameters: &crate::constraints::CGMYParameters,
+    cf_parameters: &CGMYParameters,
     maturity: f64,
     rate: f64,
-) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), crate::constraints::ParameterError> {
-    crate::constraints::check_cgmy_parameters(
-        &cf_parameters,
-        &crate::constraints::get_cgmy_constraints(),
-    )?;
-    let crate::constraints::CGMYParameters {
+) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
+    check_cgmy_parameters(&cf_parameters, &get_cgmy_constraints())?;
+    let CGMYParameters {
         c,
         g,
         m,
@@ -115,47 +69,13 @@ fn get_cgmy_cf(
     let vol = cf_functions::cgmy::cgmy_diffusion_vol(*sigma, *c, *g, *m, *y, maturity);
     Ok((cf_inst, vol))
 }
-fn get_cgmy_calibration(
-    rate: f64,
-) -> (
-    impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-) {
-    let constraints = crate::constraints::get_cgmy_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.c),
-        convert_constraints_to_mid(&constraints.g),
-        convert_constraints_to_mid(&constraints.m),
-        convert_constraints_to_mid(&constraints.y),
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
-    (
-        move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [c, g, m, y, sigma, v0, speed, eta_v, rho] => cf_functions::cgmy::cgmy_time_change_cf(
-                maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, *rho,
-            )(u),
-            _ => {
-                println!("Can never get here");
-                Complex::<f64>::new(0.0, 0.0)
-            }
-        },
-        init_params,
-    )
-}
 fn get_merton_cf(
-    cf_parameters: &crate::constraints::MertonParameters,
+    cf_parameters: &MertonParameters,
     maturity: f64,
     rate: f64,
 ) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
-    crate::constraints::check_merton_parameters(
-        &cf_parameters,
-        &crate::constraints::get_merton_constraints(),
-    )?;
-    let crate::constraints::MertonParameters {
+    check_merton_parameters(&cf_parameters, &get_merton_constraints())?;
+    let MertonParameters {
         lambda,
         mu_l,
         sig_l,
@@ -171,48 +91,14 @@ fn get_merton_cf(
     let vol = cf_functions::merton::jump_diffusion_vol(*sigma, *lambda, *mu_l, *sig_l, maturity);
     Ok((cf_inst, vol))
 }
-fn get_merton_calibration(
-    rate: f64,
-) -> (
-    impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-) {
-    let constraints = crate::constraints::get_merton_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.lambda),
-        convert_constraints_to_mid(&constraints.mu_l),
-        convert_constraints_to_mid(&constraints.sig_l),
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
-    (
-        move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
-                cf_functions::merton::merton_time_change_cf(
-                    maturity, rate, *lambda, *mu_l, *sig_l, *sigma, *v0, *speed, *eta_v, *rho,
-                )(u)
-            }
-            _ => {
-                println!("Can never get here");
-                Complex::<f64>::new(0.0, 0.0)
-            }
-        },
-        init_params,
-    )
-}
+
 fn get_heston_cf(
-    cf_parameters: &crate::constraints::HestonParameters,
+    cf_parameters: &HestonParameters,
     maturity: f64,
     rate: f64,
 ) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
-    crate::constraints::check_heston_parameters(
-        &cf_parameters,
-        &crate::constraints::get_heston_constraints(),
-    )?;
-    let crate::constraints::HestonParameters {
+    check_heston_parameters(&cf_parameters, &get_heston_constraints())?;
+    let HestonParameters {
         sigma,
         v0,
         speed,
@@ -222,63 +108,37 @@ fn get_heston_cf(
     let cf_inst = cf_functions::gauss::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho);
     Ok((cf_inst, *sigma))
 }
-fn get_heston_calibration(
-    rate: f64,
-) -> (
-    impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-) {
-    let constraints = crate::constraints::get_heston_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
-    (
-        move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [sigma, v0, speed, eta_v, rho] => {
-                cf_functions::gauss::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho)(u)
-            }
-            _ => {
-                println!("Can never get here");
-                Complex::<f64>::new(0.0, 0.0)
-            }
-        },
-        init_params,
-    )
-}
+
 fn get_max_strike(asset: f64, option_scale: f64, vol: f64) -> f64 {
     (option_scale * vol).exp() * asset
 }
 pub fn get_option_results_as_json(
     fn_choice: i32,
     include_iv: bool,
-    cf_parameters: &crate::constraints::CFParameters,
+    cf_parameters: &CFParameters,
     option_scale: f64,
     num_u: usize,
     asset: f64,
     maturity: f64,
     rate: f64,
     strikes: &[f64],
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     match cf_parameters {
-        crate::constraints::CFParameters::CGMY(cf_params) => {
+        CFParameters::CGMY(cf_params) => {
             let (cf_inst, vol) = get_cgmy_cf(cf_params, maturity, rate)?;
             let max_strike = get_max_strike(asset, option_scale, vol);
             get_option_results(
                 fn_choice, include_iv, num_u, asset, rate, maturity, &strikes, max_strike, &cf_inst,
             )
         }
-        crate::constraints::CFParameters::Merton(cf_params) => {
+        CFParameters::Merton(cf_params) => {
             let (cf_inst, vol) = get_merton_cf(cf_params, maturity, rate)?;
             let max_strike = get_max_strike(asset, option_scale, vol);
             get_option_results(
                 fn_choice, include_iv, num_u, asset, rate, maturity, &strikes, max_strike, &cf_inst,
             )
         }
-        crate::constraints::CFParameters::Heston(cf_params) => {
+        CFParameters::Heston(cf_params) => {
             let (cf_inst, vol) = get_heston_cf(cf_params, maturity, rate)?;
             let max_strike = get_max_strike(asset, option_scale, vol);
             get_option_results(
@@ -287,181 +147,26 @@ pub fn get_option_results_as_json(
         }
     }
 }
-fn convert_constraints_to_mid(constraint: &crate::constraints::ConstraintsSchema) -> f64 {
-    (constraint.upper + constraint.lower) * 0.5
-}
-fn get_obj_fn_mse<'a, 'b: 'a, T>(
-    option_datum: &'b [OptionDataMaturity],
-    num_u: usize,
-    asset: f64,
-    max_strike: f64,
-    rate: f64,
-    cf_fn: T,
-) -> impl Fn(&[f64]) -> f64 + 'a
-where
-    T: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + 'b + Sync,
-{
-    move |params| {
-        fang_oost_option::option_calibration::obj_fn_real(
-            num_u,
-            asset,
-            &option_datum,
-            max_strike,
-            rate,
-            &params,
-            &cf_fn,
-        )
-    }
-}
-fn get_obj_fn<S>(
-    num_u: usize,
-    asset: f64,
-    option_data: &[OptionDataMaturity],
-    init_params: Vec<f64>,
-    max_strike: f64,
-    rate: f64,
-    max_iter: u64,
-    cf_inst: S,
-) -> Result<Vec<f64>, ParameterError>
-where
-    S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-{
-    let linesearch = MoreThuenteLineSearch::new();
-    let solver = LBFGS::new(linesearch, 7);
-    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, max_strike, rate, &cf_inst);
-    let obj_fn = ObjFn { obj_fn: &obj_fn };
-    let res = Executor::new(obj_fn, solver, init_params)
-        .max_iters(max_iter)
-        .run()?;
-    let best_params = res.state.get_best_param();
-    println!(
-        "This is the best cost function (should be close to zero): {}",
-        res.state.get_best_cost()
-    );
-    Ok(best_params)
-}
-pub fn get_option_calibration_results_as_json(
-    model_choice: i32,
-    option_data: &[OptionDataMaturity],
-    calibration_scale: f64,
-    max_iter: u64,
-    num_u: usize,
-    asset: f64,
-    rate: f64,
-) -> Result<CFParameters, ParameterError> {
-    let max_strike = asset * calibration_scale;
 
-    match model_choice {
-        CGMY => {
-            let (cf_inst, init_params) = get_cgmy_calibration(rate);
-            let results = get_obj_fn(
-                num_u,
-                asset,
-                &option_data,
-                init_params,
-                max_strike,
-                rate,
-                max_iter,
-                &cf_inst,
-            )?;
-            match &results[..] {
-                [c, g, m, y, sigma, v0, speed, eta_v, rho] => {
-                    Ok(CFParameters::CGMY(CGMYParameters {
-                        c: *c,
-                        g: *g,
-                        m: *m,
-                        y: *y,
-                        sigma: *sigma,
-                        v0: *v0,
-                        speed: *speed,
-                        eta_v: *eta_v,
-                        rho: *rho,
-                    }))
-                }
-                _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
-                    "Calibration".to_string(),
-                ))),
-            }
-        }
-        MERTON => {
-            let (cf_inst, init_params) = get_merton_calibration(rate);
-            let results = get_obj_fn(
-                num_u,
-                asset,
-                &option_data,
-                init_params,
-                max_strike,
-                rate,
-                max_iter,
-                &cf_inst,
-            )?;
-            match &results[..] {
-                [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
-                    Ok(CFParameters::Merton(MertonParameters {
-                        lambda: *lambda,
-                        mu_l: *mu_l,
-                        sig_l: *sig_l,
-                        sigma: *sigma,
-                        v0: *v0,
-                        speed: *speed,
-                        eta_v: *eta_v,
-                        rho: *rho,
-                    }))
-                }
-                _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
-                    "Calibration".to_string(),
-                ))),
-            }
-        }
-        HESTON => {
-            let (cf_inst, init_params) = get_heston_calibration(rate);
-            let results = get_obj_fn(
-                num_u,
-                asset,
-                &option_data,
-                init_params,
-                max_strike,
-                rate,
-                max_iter,
-                &cf_inst,
-            )?;
-            match &results[..] {
-                [sigma, v0, speed, eta_v, rho] => Ok(CFParameters::Heston(HestonParameters {
-                    sigma: *sigma,
-                    v0: *v0,
-                    speed: *speed,
-                    eta_v: *eta_v,
-                    rho: *rho,
-                })),
-                _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
-                    "Calibration".to_string(),
-                ))),
-            }
-        }
-        _ => Err(crate::constraints::ParameterError::new(
-            &crate::constraints::ErrorType::FunctionError(format!("{}", model_choice)),
-        )),
-    }
-}
 pub fn get_density_results_as_json(
-    cf_parameters: &crate::constraints::CFParameters,
+    cf_parameters: &CFParameters,
     density_scale: f64,
     num_u: usize,
     maturity: f64,
     rate: f64,
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     match cf_parameters {
-        crate::constraints::CFParameters::CGMY(cf_params) => {
+        CFParameters::CGMY(cf_params) => {
             let (cf_inst, vol) = get_cgmy_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             get_density_results(num_u, x_max_density, &cf_inst)
         }
-        crate::constraints::CFParameters::Merton(cf_params) => {
+        CFParameters::Merton(cf_params) => {
             let (cf_inst, vol) = get_merton_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             get_density_results(num_u, x_max_density, &cf_inst)
         }
-        crate::constraints::CFParameters::Heston(cf_params) => {
+        CFParameters::Heston(cf_params) => {
             let (cf_inst, vol) = get_heston_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             get_density_results(num_u, x_max_density, &cf_inst)
@@ -470,27 +175,27 @@ pub fn get_density_results_as_json(
 }
 
 pub fn get_risk_measure_results_as_json(
-    cf_parameters: &crate::constraints::CFParameters,
+    cf_parameters: &CFParameters,
     density_scale: f64,
     num_u: usize,
     maturity: f64,
     rate: f64,
     quantile: f64,
-) -> Result<cf_dist_utils::RiskMetric, crate::constraints::ParameterError> {
+) -> Result<cf_dist_utils::RiskMetric, ParameterError> {
     match cf_parameters {
-        crate::constraints::CFParameters::CGMY(cf_params) => {
+        CFParameters::CGMY(cf_params) => {
             let (cf_inst, vol) = get_cgmy_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             let result = get_risk_measure_results(num_u, x_max_density, quantile, &cf_inst)?;
             Ok(result)
         }
-        crate::constraints::CFParameters::Merton(cf_params) => {
+        CFParameters::Merton(cf_params) => {
             let (cf_inst, vol) = get_merton_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             let result = get_risk_measure_results(num_u, x_max_density, quantile, &cf_inst)?;
             Ok(result)
         }
-        crate::constraints::CFParameters::Heston(cf_params) => {
+        CFParameters::Heston(cf_params) => {
             let (cf_inst, vol) = get_heston_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             let result = get_risk_measure_results(num_u, x_max_density, quantile, &cf_inst)?;
@@ -539,7 +244,7 @@ fn graph_iv_as_json(
     x_values: &[f64],
     values: &[f64],
     iv_fn: &dyn Fn(f64, f64) -> Result<f64, f64>,
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     create_generic_iterator(x_values, values)
         .map(|(strike, price)| {
             iv_fn(*price, *strike)
@@ -548,7 +253,7 @@ fn graph_iv_as_json(
                     value: *price,
                     iv: Some(iv),
                 })
-                .map_err(|_err| crate::constraints::throw_no_convergence_error())
+                .map_err(|_err| throw_no_convergence_error())
         })
         .collect()
 }
@@ -559,7 +264,7 @@ fn call_iv_as_json(
     asset: f64,
     rate: f64,
     maturity: f64,
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     graph_iv_as_json(x_values, values, &|price, strike| {
         black_scholes::call_iv(price, asset, strike, rate, maturity)
     })
@@ -570,7 +275,7 @@ fn put_iv_as_json(
     asset: f64,
     rate: f64,
     maturity: f64,
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     graph_iv_as_json(x_values, values, &|price, strike| {
         black_scholes::put_iv(price, asset, strike, rate, maturity)
     })
@@ -604,7 +309,7 @@ fn get_option_results<S>(
     strikes: &[f64],
     max_strike: f64,
     inst_cf: S,
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError>
+) -> Result<Vec<GraphElement>, ParameterError>
 where
     S: Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync + std::marker::Send,
 {
@@ -665,32 +370,18 @@ where
                 num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
             ),
         )),
-        _ => Err(crate::constraints::ParameterError::new(
-            &crate::constraints::ErrorType::FunctionError(format!("{}", fn_choice)),
-        )),
+        _ => Err(ParameterError::new(&ErrorType::FunctionError(format!(
+            "{}",
+            fn_choice
+        )))),
     }
 }
-
-/*
-fn get_calibration_results<S>(
-    num_u: usize,
-    asset: f64,
-    rate: f64,
-    option_data: &[OptionDataMaturity],
-    max_strike,
-    inst_cf: &(dyn Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + std::marker::Sync),
-
-
-    //obj_fn_real(num_u: usize, asset: f64, option_datum: &[OptionDataMaturity], max_strike: f64, rate: f64, params: &[f64], cf_function: S)
-)
-where
-    S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + std::marker::Sync + std::marker::Send,*/
 
 fn get_density_results(
     num_u: usize,
     x_max_density: f64,
     inst_cf: &(dyn Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync),
-) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
+) -> Result<Vec<GraphElement>, ParameterError> {
     Ok(adjust_density(num_u, x_max_density, &inst_cf))
 }
 const MAX_SIMS: usize = 100;
@@ -715,7 +406,7 @@ fn get_risk_measure_results(
 
 #[cfg(test)]
 mod tests {
-    use crate::maps::*;
+    use crate::pricing_maps::*;
     use approx::*;
     use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
     #[test]
@@ -734,7 +425,7 @@ mod tests {
         let seed: [u8; 32] = [2; 32];
         let mut rng_seed = get_rng_seed(seed);
         let uniform = Uniform::new(0.0f64, 1.0);
-        let constr = crate::constraints::get_merton_constraints();
+        let constr = get_merton_constraints();
         let asset = 178.46;
         let num_u = 256;
         let strikes = vec![
@@ -863,7 +554,7 @@ mod tests {
     fn test_cgmy_price_1() {
         //https://mpra.ub.uni-muenchen.de/8914/4/MPRA_paper_8914.pdf pg 18
         //S0 = 100, K = 100, r = 0.1, q = 0, C = 1, G = 5, M = 5, T = 1, Y=0.5
-        let parameters = crate::constraints::CGMYParameters {
+        let parameters = CGMYParameters {
             sigma: 0.0,
             c: 1.0,
             g: 5.0,
@@ -883,7 +574,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             true,
-            &crate::constraints::CFParameters::CGMY(parameters),
+            &CFParameters::CGMY(parameters),
             10.0,
             num_u,
             asset,
@@ -898,7 +589,7 @@ mod tests {
     fn test_cgmy_price_2() {
         //https://mpra.ub.uni-muenchen.de/8914/4/MPRA_paper_8914.pdf pg 18
         //S0 = 100, K = 100, r = 0.1, q = 0, C = 1, G = 5, M = 5, T = 1, Y=1.5
-        let parameters = crate::constraints::CGMYParameters {
+        let parameters = CGMYParameters {
             sigma: 0.0,
             c: 1.0,
             g: 5.0,
@@ -917,7 +608,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::CGMY(parameters),
+            &CFParameters::CGMY(parameters),
             10.0,
             num_u,
             asset,
@@ -932,7 +623,7 @@ mod tests {
     fn test_cgmy_price_3() {
         //https://mpra.ub.uni-muenchen.de/8914/4/MPRA_paper_8914.pdf pg 18
         //S0 = 100, K = 100, r = 0.1, q = 0, C = 1, G = 5, M = 5, T = 1, Y=1.98
-        let parameters = crate::constraints::CGMYParameters {
+        let parameters = CGMYParameters {
             sigma: 0.0,
             c: 1.0,
             g: 5.0,
@@ -951,7 +642,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::CGMY(parameters),
+            &CFParameters::CGMY(parameters),
             10.0,
             num_u,
             asset,
@@ -967,7 +658,7 @@ mod tests {
         //https://www.upo.es/personal/jfernav/papers/Jumps_JOD_.pdf pg 8
         let sig_l = 0.05_f64.sqrt();
         let mu_l = -sig_l.powi(2) * 0.5;
-        let parameters = crate::constraints::MertonParameters {
+        let parameters = MertonParameters {
             sigma: sig_l,
             lambda: 1.0,
             mu_l,
@@ -985,7 +676,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::Merton(parameters),
+            &CFParameters::Merton(parameters),
             10.0,
             num_u,
             asset,
@@ -1043,7 +734,7 @@ mod tests {
         let c = 0.5751;
         let rho = -0.5711;
         let v0 = 0.0175;
-        let parameters = crate::constraints::HestonParameters {
+        let parameters = HestonParameters {
             sigma: b.sqrt(),
             speed: a,
             v0,
@@ -1058,7 +749,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::Heston(parameters),
+            &CFParameters::Heston(parameters),
             10.0,
             num_u,
             asset,
@@ -1072,7 +763,7 @@ mod tests {
     #[test]
     fn test_monte_carlo() {
         //https://github.com/phillyfan1138/fang_oost_cal_charts/blob/master/docs/OptionCalculation.Rnw
-        let parameters = crate::constraints::MertonParameters {
+        let parameters = MertonParameters {
             sigma: 0.2,
             lambda: 0.5,
             mu_l: -0.05,
@@ -1090,7 +781,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::Merton(parameters),
+            &CFParameters::Merton(parameters),
             10.0,
             num_u,
             asset,
@@ -1106,7 +797,7 @@ mod tests {
     #[test]
     fn test_risk_measures() {
         //https://github.com/phillyfan1138/levy-functions/issues/27
-        let parameters = crate::constraints::MertonParameters {
+        let parameters = MertonParameters {
             sigma: 0.3183,
             lambda: 0.204516,
             mu_l: -0.302967,
@@ -1121,7 +812,7 @@ mod tests {
         let rate = 0.004;
         let quantile = 0.01;
         let results = get_risk_measure_results_as_json(
-            &crate::constraints::CFParameters::Merton(parameters),
+            &CFParameters::Merton(parameters),
             5.0,
             num_u,
             t,
@@ -1135,7 +826,7 @@ mod tests {
     fn test_error_for_out_of_bounds_constant() {
         let sig_l = 0.05_f64.sqrt();
         let mu_l = -sig_l.powi(2) * 0.5;
-        let parameters = crate::constraints::MertonParameters {
+        let parameters = MertonParameters {
             sigma: sig_l,
             lambda: 1.0,
             mu_l,
@@ -1154,7 +845,7 @@ mod tests {
         let results = get_option_results_as_json(
             integer_that_is_not_an_option,
             false,
-            &crate::constraints::CFParameters::Merton(parameters),
+            &CFParameters::Merton(parameters),
             10.0,
             num_u,
             asset,

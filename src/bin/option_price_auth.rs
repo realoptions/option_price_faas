@@ -10,7 +10,7 @@ use rocket_contrib::json::{Json, JsonError, JsonValue};
 use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
-use utils::{auth, constraints, maps};
+use utils::{auth, constraints, pricing_maps};
 
 #[get("/<model>/parameters/parameter_ranges")]
 pub fn parameters(_key: auth::ApiKey, model: &RawStr) -> JsonValue {
@@ -35,7 +35,7 @@ pub fn calculator(
     include_implied_volatility: Option<bool>,
 ) -> Result<JsonValue, constraints::ParameterError> {
     let parameters = parameters?;
-    let fn_indicator = maps::get_fn_indicators(option_type, sensitivity)?;
+    let fn_indicator = pricing_maps::get_fn_indicators(option_type, sensitivity)?;
     constraints::check_parameters(&parameters, &constraints::get_constraints())?;
     let constraints::OptionParameters {
         maturity,
@@ -52,7 +52,7 @@ pub fn calculator(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
     let include_iv = include_implied_volatility.unwrap_or(false);
-    let results = maps::get_option_results_as_json(
+    let results = pricing_maps::get_option_results_as_json(
         fn_indicator,
         include_iv,
         &cf_parameters,
@@ -85,8 +85,13 @@ pub fn density(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
 
-    let results =
-        maps::get_density_results_as_json(&cf_parameters, DENSITY_SCALE, num_u, maturity, rate)?;
+    let results = pricing_maps::get_density_results_as_json(
+        &cf_parameters,
+        DENSITY_SCALE,
+        num_u,
+        maturity,
+        rate,
+    )?;
 
     Ok(json!(results))
 }
@@ -111,7 +116,7 @@ pub fn risk_metric(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
     let quantile_unwrap = quantile.ok_or(constraints::throw_no_exist_error("quantile"))?;
-    let results = maps::get_risk_measure_results_as_json(
+    let results = pricing_maps::get_risk_measure_results_as_json(
         &cf_parameters,
         DENSITY_SCALE,
         num_u,
