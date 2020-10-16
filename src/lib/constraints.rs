@@ -1,7 +1,6 @@
 use rocket::response::Responder;
 use rocket_contrib::json::{JsonError, JsonValue};
 use serde_derive::{Deserialize, Serialize};
-use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt;
 
@@ -123,7 +122,7 @@ pub struct OptionParameters {
     pub maturity: f64,
     pub rate: f64,
     pub asset: Option<f64>,
-    pub strikes: Option<VecDeque<f64>>,
+    pub strikes: Option<Vec<f64>>,
     pub quantile: Option<f64>,
     pub num_u: usize, //raised to the power of two.  if this is 8, then there will be 2^8=256 discrete "u"
     pub cf_parameters: CFParameters,

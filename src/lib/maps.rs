@@ -138,7 +138,10 @@ fn get_cgmy_calibration(
             [c, g, m, y, sigma, v0, speed, eta_v, rho] => cf_functions::cgmy::cgmy_time_change_cf(
                 maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, *rho,
             )(u),
-            _ => println!("Can never get here"),
+            _ => {
+                println!("Can never get here");
+                Complex::<f64>::new(0.0, 0.0)
+            }
         },
         init_params,
     )
@@ -192,7 +195,10 @@ fn get_merton_calibration(
                     maturity, rate, *lambda, *mu_l, *sig_l, *sigma, *v0, *speed, *eta_v, *rho,
                 )(u)
             }
-            _ => println!("Can never get here"),
+            _ => {
+                println!("Can never get here");
+                Complex::<f64>::new(0.0, 0.0)
+            }
         },
         init_params,
     )
@@ -235,7 +241,10 @@ fn get_heston_calibration(
             [sigma, v0, speed, eta_v, rho] => {
                 cf_functions::gauss::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho)(u)
             }
-            _ => println!("Can never get here"),
+            _ => {
+                println!("Can never get here");
+                Complex::<f64>::new(0.0, 0.0)
+            }
         },
         init_params,
     )
@@ -361,7 +370,7 @@ pub fn get_option_calibration_results_as_json(
                         c: *c,
                         g: *g,
                         m: *m,
-                        y: *m,
+                        y: *y,
                         sigma: *sigma,
                         v0: *v0,
                         speed: *speed,
@@ -501,13 +510,8 @@ pub struct GraphElement {
 fn create_generic_iterator<'a, 'b: 'a>(
     x_values: &'b [f64],
     values: &'b [f64],
-) -> impl Iterator<Item = (usize, (&'a f64, &'a f64))> + 'a {
-    let x_val_crit = values.len() - 1;
-    x_values
-        .into_iter()
-        .zip(values)
-        .enumerate()
-        .filter(move |(index, _)| index > &0 && index < &x_val_crit)
+) -> impl Iterator<Item = (&'a f64, &'a f64)> + 'a {
+    x_values.into_iter().zip(values)
 }
 
 fn density_as_json(x_values: &[f64], values: &[f64]) -> Vec<GraphElement> {
@@ -524,7 +528,7 @@ fn density_as_json(x_values: &[f64], values: &[f64]) -> Vec<GraphElement> {
 
 fn graph_no_iv_as_json(x_values: &[f64], values: &[f64]) -> Vec<GraphElement> {
     create_generic_iterator(x_values, values)
-        .map(|(_, (strike, price))| GraphElement {
+        .map(|(strike, price)| GraphElement {
             at_point: *strike,
             value: *price,
             iv: None,
@@ -537,7 +541,7 @@ fn graph_iv_as_json(
     iv_fn: &dyn Fn(f64, f64) -> Result<f64, f64>,
 ) -> Result<Vec<GraphElement>, crate::constraints::ParameterError> {
     create_generic_iterator(x_values, values)
-        .map(|(_, (strike, price))| {
+        .map(|(strike, price)| {
             iv_fn(*price, *strike)
                 .map(|iv| GraphElement {
                     at_point: *strike,
@@ -1002,7 +1006,7 @@ mod tests {
         let c = 0.5751;
         let rho = -0.5711;
         let v0 = 0.0175;
-        let parameters = crate::constraints::MertonParameters {
+        let parameters = MertonParameters {
             sigma: b.sqrt(),
             lambda: 0.0,
             mu_l,
@@ -1020,7 +1024,7 @@ mod tests {
         let results = get_option_results_as_json(
             CALL_PRICE,
             false,
-            &crate::constraints::CFParameters::Merton(parameters),
+            &CFParameters::Merton(parameters),
             10.0,
             num_u,
             asset,

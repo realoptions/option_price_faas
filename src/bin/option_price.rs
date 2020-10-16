@@ -59,7 +59,7 @@ pub fn calculator(
         asset_unwrap,
         maturity,
         rate,
-        strikes_unwrap,
+        &strikes_unwrap,
     )?;
     Ok(json!(results))
 }
