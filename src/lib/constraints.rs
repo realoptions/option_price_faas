@@ -389,28 +389,52 @@ pub const CGMY_CONSTRAINTS: CGMYConstraints = CGMYConstraints {
     },
 };
 
+/*
+"sigma", "speed", "ada_v", "rho", "v0_hat"
+let constraints = vec![
+    cuckoo::UpperLower {
+        lower: 0.0,
+        upper: 0.6, //1
+    },
+    cuckoo::UpperLower {
+        lower: 0.0,
+        upper: 2.0, //3
+    },
+    cuckoo::UpperLower {
+        lower: 0.0,
+        upper: 4.0, //3
+    },
+    cuckoo::UpperLower {
+        lower: -1.0,
+        upper: 1.0,
+    },
+    cuckoo::UpperLower {
+        lower: 0.0,
+        upper: 2.0, //1.5
+    },
+];*/
 pub const HESTON_CONSTRAINTS: HestonConstraints = HestonConstraints {
     sigma: &ConstraintsSchema {
         lower: 0.0,
-        upper: 1.0,
+        upper: 0.6,
         types: "float",
         description: "Square root of mean of variance process",
     },
     v0: &ConstraintsSchema {
-        lower: 0.001,
-        upper: 1.5,
+        lower: 0.0,
+        upper: 2.0,
         types: "float",
         description: "Square root of initial value of the instantaneous variance",
     },
     speed: &ConstraintsSchema {
         lower: 0.0,
-        upper: 3.0,
+        upper: 2.0,
         types: "float",
         description: "Rate at which variance reverts to mean",
     },
     eta_v: &ConstraintsSchema {
         lower: 0.0,
-        upper: 3.0,
+        upper: 4.0,
         types: "float",
         description: "Vol of vol: volatility of instantaneous variance",
     },

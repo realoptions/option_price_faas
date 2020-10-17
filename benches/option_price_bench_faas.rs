@@ -3,7 +3,6 @@ extern crate criterion;
 use criterion::{Criterion, ParameterizedBenchmark};
 extern crate num_complex;
 extern crate utils;
-use std::collections::VecDeque;
 use utils::{constants, constraints, pricing_maps};
 fn bench_option_price_u(c: &mut Criterion) {
     c.bench(

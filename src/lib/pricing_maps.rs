@@ -106,10 +106,10 @@ fn get_heston_cf(
         rho,
     } = cf_parameters;
     let cf_inst = cf_functions::gauss::heston_cf(maturity, rate, *sigma, *v0, *speed, *eta_v, *rho);
-    Ok((cf_inst, *sigma))
+    Ok((cf_inst, sigma * maturity.sqrt()))
 }
 
-fn get_max_strike(asset: f64, option_scale: f64, vol: f64) -> f64 {
+pub(crate) fn get_max_strike(asset: f64, option_scale: f64, vol: f64) -> f64 {
     (option_scale * vol).exp() * asset
 }
 pub fn get_option_results_as_json(
@@ -206,10 +206,10 @@ pub fn get_risk_measure_results_as_json(
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GraphElement {
-    at_point: f64,
-    value: f64,
+    pub at_point: f64,
+    pub value: f64,
     #[serde(skip_serializing_if = "Option::is_none")] //skip when iv is not provided
-    iv: Option<f64>,
+    pub iv: Option<f64>,
 }
 
 fn create_generic_iterator<'a, 'b: 'a>(

@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "fang_oost_option"
-version = "0.30.0"
+version = "0.30.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b2260bc6522ec9daee05f1e058cdf7fe2289423fd9d55c19620587921b2e36"
+checksum = "dfeaf6feef9f2ccf6fa4a4bfee07ff4a337d2279a236e8738f56a5f109610aec"
 dependencies = [
  "black_scholes",
  "fang_oost",

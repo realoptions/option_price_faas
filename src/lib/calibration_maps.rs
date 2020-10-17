@@ -113,27 +113,28 @@ fn get_heston_calibration(
 fn convert_constraints_to_mid(constraint: &crate::constraints::ConstraintsSchema) -> f64 {
     (constraint.upper + constraint.lower) * 0.5
 }
-fn get_obj_fn_mse<'a, 'b: 'a, T>(
+fn get_obj_fn_mse<'a, 'b: 'a, T, S>(
     option_datum: &'b [OptionDataMaturity],
     num_u: usize,
     asset: f64,
-    max_strike: f64,
     rate: f64,
+    get_max_strike: S,
     cf_fn: T,
 ) -> impl Fn(&[f64]) -> f64 + 'a
 where
     T: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + 'b + Sync,
+    S: Fn(&[f64], f64) -> f64 + 'b + Sync,
 {
     move |params| {
         fang_oost_option::option_calibration::obj_fn_real(
             num_u,
             asset,
             &option_datum,
-            max_strike,
             rate,
             &params,
+            &get_max_strike,
             &cf_fn,
-        )
+        ) * 15.0
     }
 }
 struct UnifRnd {
@@ -192,27 +193,34 @@ fn generate_merton_params(rnd: &mut UnifRnd, constraints: &MertonConstraints) ->
         .collect()
 }
 
-const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.00000001;
-fn optimize<S, U>(
+const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.0001;
+//const TOL_GRAD: f64 = 0.000000000001;
+//.with_tol_grad(TOL_GRAD);
+//.with_tol_cost(MAX_ACCEPTABLE_COST_FUNCTION_VALUE);
+fn optimize<T, S, U>(
     num_u: usize,
     asset: f64,
     option_data: &[OptionDataMaturity],
     mut init_params: Vec<f64>,
-    max_strike: f64,
     rate: f64,
     max_iter: u64,
+    get_max_strike: T,
     cf_inst: S,
     mut generate_new_params: U,
 ) -> Result<Vec<f64>, ParameterError>
 where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     U: FnMut() -> Vec<f64> + Sync,
+    T: Fn(&[f64], f64) -> f64 + Sync,
 {
-    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, max_strike, rate, &cf_inst);
+    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
     let mut all_good = false;
+    //TODO!  make the 100 a constant
     for _ in 0..100 {
         let obj_fn = ObjFn { obj_fn: &obj_fn };
         let linesearch = MoreThuenteLineSearch::new();
+        // m between 3 and 20 yield "good results" according to
+        // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
         let solver = LBFGS::new(linesearch, 7);
         let res = Executor::new(obj_fn, solver, init_params)
             .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
@@ -221,6 +229,11 @@ where
         match res {
             Ok(result) => {
                 if result.state.get_best_cost() > MAX_ACCEPTABLE_COST_FUNCTION_VALUE {
+                    println!("best cost {}", result.state.get_best_cost());
+                    for element in result.state.get_best_param().iter() {
+                        println!("element value {}", element);
+                    }
+                    //didn't converge
                     init_params = generate_new_params();
                 } else {
                     init_params = result.state.get_best_param();
@@ -228,7 +241,9 @@ where
                     break;
                 }
             }
-            Err(_) => {
+            Err(e) => {
+                println!("this is err: {}", e);
+
                 init_params = generate_new_params();
             }
         };
@@ -242,26 +257,35 @@ where
 pub fn get_option_calibration_results_as_json(
     model_choice: i32,
     option_data: &[OptionDataMaturity],
-    calibration_scale: f64,
+    option_scale: f64,
     max_iter: u64,
     num_u: usize,
     asset: f64,
     rate: f64,
     seed: [u8; 32],
 ) -> Result<CFParameters, ParameterError> {
-    let max_strike = asset * calibration_scale;
     let mut rnd = UnifRnd::new(seed);
     match model_choice {
         CGMY => {
             let (cf_inst, init_params) = get_cgmy_calibration(rate);
+            let get_max_strike = |params: &[f64], maturity| {
+                let c = params[0];
+                let g = params[1];
+                let m = params[2];
+                let y = params[3];
+                let sigma = params[4];
+
+                let vol = cf_functions::cgmy::cgmy_diffusion_vol(sigma, c, g, m, y, maturity);
+                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+            };
             let results = optimize(
                 num_u,
                 asset,
                 &option_data,
                 init_params,
-                max_strike,
                 rate,
                 max_iter,
+                &get_max_strike,
                 &cf_inst,
                 || generate_cgmy_params(&mut rnd, &CGMY_CONSTRAINTS),
             )?;
@@ -286,14 +310,23 @@ pub fn get_option_calibration_results_as_json(
         }
         MERTON => {
             let (cf_inst, init_params) = get_merton_calibration(rate);
+            let get_max_strike = |params: &[f64], maturity| {
+                let lambda = params[0];
+                let mu_l = params[1];
+                let sig_l = params[2];
+                let sigma = params[3];
+                let vol =
+                    cf_functions::merton::jump_diffusion_vol(sigma, lambda, mu_l, sig_l, maturity);
+                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+            };
             let results = optimize(
                 num_u,
                 asset,
                 &option_data,
                 init_params,
-                max_strike,
                 rate,
                 max_iter,
+                &get_max_strike,
                 &cf_inst,
                 || generate_merton_params(&mut rnd, &MERTON_CONSTRAINTS),
             )?;
@@ -317,14 +350,19 @@ pub fn get_option_calibration_results_as_json(
         }
         HESTON => {
             let (cf_inst, init_params) = get_heston_calibration(rate);
+            let get_max_strike = |params: &[f64], maturity: f64| {
+                let sigma = params[0];
+                let vol = sigma * maturity.sqrt();
+                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+            };
             let results = optimize(
                 num_u,
                 asset,
                 &option_data,
                 init_params,
-                max_strike,
                 rate,
                 max_iter,
+                &get_max_strike,
                 &cf_inst,
                 || generate_heston_params(&mut rnd, &HESTON_CONSTRAINTS),
             )?;
@@ -351,7 +389,6 @@ pub fn get_option_calibration_results_as_json(
 #[cfg(test)]
 mod tests {
     use crate::calibration_maps::*;
-    use crate::constants::CALIBRATION_SCALAR;
     use crate::constraints::MERTON_CONSTRAINTS;
     use approx::*;
     use fang_oost_option::option_calibration::OptionData;
@@ -370,13 +407,14 @@ mod tests {
         let uniform = Uniform::new(0.0f64, 1.0);
         let asset = 178.46;
         let num_u = 256;
+        let option_scale = 10.0;
         let strikes = vec![
             95.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0, 210.0,
             240.0, 250.0,
         ];
         let maturity = 0.86;
         let rate = 0.02;
-        let max_strike = 5000.0;
+        //let max_strike = 5000.0;
         let num_total: usize = 100;
         let mut num_bad: usize = 0;
         (0..num_total).for_each(|_| {
@@ -425,6 +463,10 @@ mod tests {
                 maturity, rate, lambda_sim, mu_l_sim, sig_l_sim, sigma_sim, v0_sim, speed_sim,
                 eta_v_sim, rho_sim,
             );
+            let vol = cf_functions::merton::jump_diffusion_vol(
+                sigma_sim, lambda_sim, mu_l_sim, sig_l_sim, maturity,
+            );
+            let max_strike = crate::pricing_maps::get_max_strike(asset, option_scale, vol);
             let opt_prices = option_pricing::fang_oost_call_price(
                 num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
             );
@@ -437,12 +479,6 @@ mod tests {
                     strike: *strike,
                 })
                 .collect();
-            /*let iv: Vec<f64> = option_data
-            .iter()
-            .map(|OptionData { price, strike }| {
-                black_scholes::call_iv(*price, asset, *strike, rate, maturity).unwrap()
-            })
-            .collect();*/
             let option_data = vec![OptionDataMaturity {
                 maturity,
                 option_data,
@@ -451,7 +487,7 @@ mod tests {
             let result = get_option_calibration_results_as_json(
                 MERTON,
                 &option_data,
-                CALIBRATION_SCALAR,
+                option_scale,
                 200,
                 num_u,
                 asset,
@@ -482,5 +518,167 @@ mod tests {
         let bad_rate = (num_bad as f64) / (num_total as f64);
         println!("Bad rate: {}", bad_rate);
         assert_eq!(bad_rate, 0.0);
+    }
+    #[test]
+    fn test_heston() {
+        let stock = 178.46;
+        let rate = 0.0;
+        let maturity = 1.0;
+        let b: f64 = 0.0398;
+        let a = 1.5768;
+        let c = 0.5751;
+        let rho = -0.5711;
+        let v0 = 0.0175;
+
+        let strikes = vec![
+            95.0, 100.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0,
+            210.0, 240.0, 250.0,
+        ];
+        let num_u = 256;
+        let option_scale = 10.0;
+        let heston_parameters =
+            crate::constraints::CFParameters::Heston(crate::constraints::HestonParameters {
+                sigma: b.sqrt(),
+                v0: v0,
+                speed: a,
+                eta_v: c,
+                rho,
+            });
+        let results = crate::pricing_maps::get_option_results_as_json(
+            crate::constants::CALL_PRICE,
+            false,
+            &heston_parameters,
+            option_scale,
+            num_u,
+            stock,
+            maturity,
+            rate,
+            &strikes,
+        )
+        .unwrap();
+
+        let option_data: Vec<OptionData> = results
+            .iter()
+            .map(
+                |crate::pricing_maps::GraphElement {
+                     at_point, value, ..
+                 }| OptionData {
+                    price: *value,
+                    strike: *at_point,
+                },
+            )
+            .collect();
+
+        let option_data = vec![OptionDataMaturity {
+            maturity,
+            option_data,
+        }];
+
+        let result = get_option_calibration_results_as_json(
+            HESTON,
+            &option_data,
+            option_scale,
+            200,
+            num_u,
+            stock,
+            rate,
+            [42; 32],
+        );
+        match result {
+            Ok(res) => {
+                let params = match res {
+                    CFParameters::Heston(params) => Ok(params),
+                    _ => Err("bad result"),
+                };
+                let params = params.unwrap();
+                assert_abs_diff_eq!(params.sigma, b.sqrt(), epsilon = 0.01);
+                assert_abs_diff_eq!(params.v0, v0, epsilon = 0.01);
+                assert_abs_diff_eq!(params.speed, a, epsilon = 0.01);
+                assert_abs_diff_eq!(params.eta_v, c, epsilon = 0.01);
+                assert_abs_diff_eq!(params.rho, rho, epsilon = 0.01);
+            }
+            Err(_) => panic!("Bad!"),
+        }
+    }
+    #[test]
+    fn test_heston_exact() {
+        let stock = 178.46;
+        let rate = 0.0;
+        let maturity = 1.0;
+        let b: f64 = 0.0398;
+        let a = 1.5768;
+        let c = 0.5751;
+        let rho = -0.5711;
+        let v0 = 0.0175;
+        let sigma = b.sqrt();
+        let speed = a;
+        let eta_v = c;
+        let strikes = vec![
+            95.0, 100.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0,
+            210.0, 240.0, 250.0,
+        ];
+        let num_u = 256;
+        let option_scale = 10.0;
+        let heston_parameters =
+            crate::constraints::CFParameters::Heston(crate::constraints::HestonParameters {
+                sigma,
+                v0: v0,
+                speed,
+                eta_v,
+                rho,
+            });
+        let results = crate::pricing_maps::get_option_results_as_json(
+            crate::constants::CALL_PRICE,
+            false,
+            &heston_parameters,
+            option_scale,
+            num_u,
+            stock,
+            maturity,
+            rate,
+            &strikes,
+        )
+        .unwrap();
+
+        let option_data: Vec<OptionData> = results
+            .iter()
+            .map(
+                |crate::pricing_maps::GraphElement {
+                     at_point, value, ..
+                 }| OptionData {
+                    price: *value,
+                    strike: *at_point,
+                },
+            )
+            .collect();
+
+        let option_data = vec![OptionDataMaturity {
+            maturity,
+            option_data,
+        }];
+        let mut rnd = UnifRnd::new([42; 32]);
+        let (cf_inst, _) = get_heston_calibration(rate);
+        let get_max_strike = |params: &[f64], maturity: f64| {
+            let sigma = params[0];
+            let vol = sigma * maturity.sqrt();
+            crate::pricing_maps::get_max_strike(stock, option_scale, vol)
+        };
+        let result = optimize(
+            num_u,
+            stock,
+            &option_data,
+            vec![sigma, v0, speed, eta_v, rho],
+            rate,
+            200,
+            &get_max_strike,
+            &cf_inst,
+            || generate_heston_params(&mut rnd, &HESTON_CONSTRAINTS),
+        )
+        .unwrap();
+        assert_abs_diff_eq!(result[0], sigma, epsilon = 0.01);
+        assert_abs_diff_eq!(result[1], v0, epsilon = 0.01);
+        assert_abs_diff_eq!(result[2], speed, epsilon = 0.01);
+        assert_abs_diff_eq!(result[3], eta_v, epsilon = 0.01);
+        assert_abs_diff_eq!(result[4], rho, epsilon = 0.01);
     }
 }
