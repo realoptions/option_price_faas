@@ -26,6 +26,7 @@ sha2 = "0.9.1"
 hex-literal = "0.3.1"
 argmin = "0.3"
 finitediff = "0.1"
+rand = "0.5"
 
 [dependencies.rocket_contrib]
 version = "0.4.5"
@@ -33,7 +34,7 @@ default-features = false
 features = ["json"]
 
 [dev-dependencies]
-rand = "0.5"
+
 approx = "0.2.0"
 criterion = "0.2"
 
@@ -51,6 +52,7 @@ path = "src/bin/option_price_auth.rs"
 [lib]
 name = "utils"
 path = "src/lib/lib.rs"
+
 
 [[bench]]
 name = "option_price_bench_faas"

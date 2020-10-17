@@ -108,6 +108,46 @@ pub struct HestonParameters {
     pub eta_v: f64,
     pub rho: f64,
 }
+impl CGMYParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.c, "c"),
+            (self.g, "g"),
+            (self.m, "m"),
+            (self.y, "y"),
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
+impl HestonParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
+impl MertonParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.lambda, "lambda"),
+            (self.mu_l, "mu_l"),
+            (self.sig_l, "sig_l"),
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
@@ -171,6 +211,32 @@ pub struct HestonConstraints {
     pub rho: ConstraintsSchema,
 }
 
+impl CGMYConstraints {
+    pub fn to_vector(&self) -> Vec<ConstraintsSchema> {
+        vec![
+            self.c, self.g, self.m, self.y, self.sigma, self.v0, self.speed, self.eta_v, self.rho,
+        ]
+    }
+}
+impl HestonConstraints {
+    pub fn to_vector(&self) -> Vec<ConstraintsSchema> {
+        vec![self.sigma, self.v0, self.speed, self.eta_v, self.rho]
+    }
+}
+impl MertonConstraints {
+    pub fn to_vector(&self) -> Vec<ConstraintsSchema> {
+        vec![
+            self.lambda,
+            self.mu_l,
+            self.sig_l,
+            self.sigma,
+            self.v0,
+            self.speed,
+            self.eta_v,
+            self.rho,
+        ]
+    }
+}
 pub fn get_constraints() -> ParameterConstraints {
     ParameterConstraints {
         rate: ConstraintsSchema {
@@ -395,40 +461,27 @@ pub fn check_heston_parameters<'a>(
     parameters: &HestonParameters,
     constraints: &HestonConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 pub fn check_merton_parameters<'a>(
     parameters: &MertonParameters,
     constraints: &MertonConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.lambda, &constraints.lambda, "lambda")?;
-    check_constraint(parameters.mu_l, &constraints.mu_l, "mu_l")?;
-    check_constraint(parameters.sig_l, &constraints.sig_l, "sig_l")?;
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 pub fn check_cgmy_parameters<'a>(
     parameters: &CGMYParameters,
     constraints: &CGMYConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.c, &constraints.c, "c")?;
-    check_constraint(parameters.g, &constraints.g, "g")?;
-    check_constraint(parameters.m, &constraints.m, "m")?;
-    check_constraint(parameters.y, &constraints.y, "y")?;
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 

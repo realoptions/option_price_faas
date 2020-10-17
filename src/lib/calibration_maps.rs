@@ -9,6 +9,7 @@ use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
 use num_complex::Complex;
+use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
 
 /** needed for calibration */
 struct ObjFn<'a> {
@@ -156,17 +157,62 @@ where
         )
     }
 }
-//todo!  create struct to hold all random generator needs
-fn generate_cgmy_params(seed: [u8, 32], rng_seed: &StdRng, uniform: &Uniform, constraints: &CGMYConstraints) -> Vec<f64> {
-    vec![
-        get_over_region(
-            constraints.c.lower,
-            constraints.c.upper,
-            uniform.sample(&mut rng_seed)
-        ),
-    ]
+struct UnifRnd {
+    rng_seed: StdRng,
+    uniform: Uniform<f64>,
 }
-fn optimize<S>(
+
+impl UnifRnd {
+    fn new(seed: [u8; 32]) -> UnifRnd {
+        UnifRnd {
+            rng_seed: SeedableRng::from_seed(seed),
+            uniform: Uniform::new(0.0f64, 1.0),
+        }
+    }
+}
+fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
+    lower + (upper - lower) * rand
+}
+fn generate_cgmy_params(rnd: &mut UnifRnd, constraints: &CGMYConstraints) -> Vec<f64> {
+    constraints
+        .to_vector()
+        .into_iter()
+        .map(|constraint| {
+            get_over_region(
+                constraint.lower,
+                constraint.upper,
+                rnd.uniform.sample(&mut rnd.rng_seed),
+            )
+        })
+        .collect()
+}
+fn generate_heston_params(rnd: &mut UnifRnd, constraints: &HestonConstraints) -> Vec<f64> {
+    constraints
+        .to_vector()
+        .into_iter()
+        .map(|constraint| {
+            get_over_region(
+                constraint.lower,
+                constraint.upper,
+                rnd.uniform.sample(&mut rnd.rng_seed),
+            )
+        })
+        .collect()
+}
+fn generate_merton_params(rnd: &mut UnifRnd, constraints: &MertonConstraints) -> Vec<f64> {
+    constraints
+        .to_vector()
+        .into_iter()
+        .map(|constraint| {
+            get_over_region(
+                constraint.lower,
+                constraint.upper,
+                rnd.uniform.sample(&mut rnd.rng_seed),
+            )
+        })
+        .collect()
+}
+fn optimize<S, U>(
     num_u: usize,
     asset: f64,
     option_data: &[OptionDataMaturity],
@@ -175,9 +221,11 @@ fn optimize<S>(
     rate: f64,
     max_iter: u64,
     cf_inst: S,
+    generate_new_params: U,
 ) -> Result<Vec<f64>, ParameterError>
 where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
+    U: Fn() -> Vec<f64> + Sync,
 {
     let linesearch = MoreThuenteLineSearch::new();
     let solver = LBFGS::new(linesearch, 7);
@@ -214,9 +262,10 @@ pub fn get_option_calibration_results_as_json(
     num_u: usize,
     asset: f64,
     rate: f64,
+    seed: [u8; 32],
 ) -> Result<CFParameters, ParameterError> {
     let max_strike = asset * calibration_scale;
-
+    let mut rnd = UnifRnd::new(seed);
     match model_choice {
         CGMY => {
             let (cf_inst, init_params, constraints) = get_cgmy_calibration(rate);
@@ -229,6 +278,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
+                || generate_cgmy_params(&mut rnd, &constraints),
             )?;
             match &results[..] {
                 [c, g, m, y, sigma, v0, speed, eta_v, rho] => {
@@ -260,6 +310,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
+                || generate_merton_params(&mut rnd, &constraints),
             )?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
@@ -290,6 +341,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
+                || generate_heston_params(&mut rnd, &constraints),
             )?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CFParameters::Heston(HestonParameters {
