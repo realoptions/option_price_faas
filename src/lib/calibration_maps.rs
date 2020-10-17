@@ -192,7 +192,7 @@ fn generate_merton_params(rnd: &mut UnifRnd, constraints: &MertonConstraints) ->
         .collect()
 }
 
-const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.000001;
+const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.00000001;
 fn optimize<S, U>(
     num_u: usize,
     asset: f64,
@@ -215,6 +215,7 @@ where
         let linesearch = MoreThuenteLineSearch::new();
         let solver = LBFGS::new(linesearch, 7);
         let res = Executor::new(obj_fn, solver, init_params)
+            .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
             .max_iters(max_iter)
             .run();
         match res {
