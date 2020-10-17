@@ -14,10 +14,10 @@ use utils::{constraints, pricing_maps};
 #[get("/<model>/parameters/parameter_ranges")]
 pub fn parameters(model: &RawStr) -> JsonValue {
     match model.as_str() {
-        "heston" => json!(constraints::get_heston_constraints()),
-        "cgmy" => json!(constraints::get_cgmy_constraints()),
-        "merton" => json!(constraints::get_merton_constraints()),
-        _ => json!(constraints::get_constraints()),
+        "heston" => json!(constraints::HESTON_CONSTRAINTS),
+        "cgmy" => json!(constraints::CGMY_CONSTRAINTS),
+        "merton" => json!(constraints::MERTON_CONSTRAINTS),
+        _ => json!(constraints::PARAMETER_CONSTRAINTS),
     }
 }
 
@@ -34,7 +34,7 @@ pub fn calculator(
 ) -> Result<JsonValue, constraints::ParameterError> {
     let parameters = parameters?;
     let fn_indicator = pricing_maps::get_fn_indicators(option_type, sensitivity)?;
-    constraints::check_parameters(&parameters, &constraints::get_constraints())?;
+    constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
     let constraints::OptionParameters {
         maturity,
         rate,
@@ -70,7 +70,7 @@ pub fn density(
     parameters: Result<Json<constraints::OptionParameters>, JsonError>,
 ) -> Result<JsonValue, constraints::ParameterError> {
     let parameters = parameters?;
-    constraints::check_parameters(&parameters, &constraints::get_constraints())?;
+    constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
         maturity,
@@ -99,7 +99,7 @@ pub fn risk_metric(
     parameters: Result<Json<constraints::OptionParameters>, JsonError>,
 ) -> Result<JsonValue, constraints::ParameterError> {
     let parameters = parameters?;
-    constraints::check_parameters(&parameters, &constraints::get_constraints())?;
+    constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
         maturity,

@@ -1,7 +1,8 @@
 use crate::constants::{CGMY, HESTON, MERTON};
 use crate::constraints::{
-    get_cgmy_constraints, CFParameters, CGMYConstraints, CGMYParameters, ErrorType,
-    HestonConstraints, HestonParameters, MertonConstraints, MertonParameters, ParameterError,
+    CFParameters, CGMYConstraints, CGMYParameters, ErrorType, HestonConstraints, HestonParameters,
+    MertonConstraints, MertonParameters, ParameterError, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS,
+    MERTON_CONSTRAINTS,
 };
 use argmin::prelude::*;
 use argmin::solver::linesearch::MoreThuenteLineSearch;
@@ -38,20 +39,12 @@ fn get_cgmy_calibration(
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     Vec<f64>,
-    CGMYConstraints,
 ) {
-    let constraints = get_cgmy_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.c),
-        convert_constraints_to_mid(&constraints.g),
-        convert_constraints_to_mid(&constraints.m),
-        convert_constraints_to_mid(&constraints.y),
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
+    let init_params = CGMY_CONSTRAINTS
+        .to_vector()
+        .into_iter()
+        .map(|v| convert_constraints_to_mid(&v))
+        .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [c, g, m, y, sigma, v0, speed, eta_v, rho] => cf_functions::cgmy::cgmy_time_change_cf(
@@ -63,7 +56,6 @@ fn get_cgmy_calibration(
             }
         },
         init_params,
-        constraints,
     )
 }
 
@@ -72,19 +64,12 @@ fn get_merton_calibration(
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     Vec<f64>,
-    MertonConstraints,
 ) {
-    let constraints = crate::constraints::get_merton_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.lambda),
-        convert_constraints_to_mid(&constraints.mu_l),
-        convert_constraints_to_mid(&constraints.sig_l),
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
+    let init_params = MERTON_CONSTRAINTS
+        .to_vector()
+        .into_iter()
+        .map(|v| convert_constraints_to_mid(&v))
+        .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
@@ -98,7 +83,6 @@ fn get_merton_calibration(
             }
         },
         init_params,
-        constraints,
     )
 }
 
@@ -107,16 +91,12 @@ fn get_heston_calibration(
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     Vec<f64>,
-    HestonConstraints,
 ) {
-    let constraints = crate::constraints::get_heston_constraints();
-    let init_params = vec![
-        convert_constraints_to_mid(&constraints.sigma),
-        convert_constraints_to_mid(&constraints.v0),
-        convert_constraints_to_mid(&constraints.speed),
-        convert_constraints_to_mid(&constraints.eta_v),
-        convert_constraints_to_mid(&constraints.rho),
-    ];
+    let init_params = HESTON_CONSTRAINTS
+        .to_vector()
+        .into_iter()
+        .map(|v| convert_constraints_to_mid(&v))
+        .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [sigma, v0, speed, eta_v, rho] => {
@@ -127,7 +107,6 @@ fn get_heston_calibration(
             }
         },
         init_params,
-        constraints,
     )
 }
 
@@ -212,39 +191,44 @@ fn generate_merton_params(rnd: &mut UnifRnd, constraints: &MertonConstraints) ->
         })
         .collect()
 }
+
+const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.000001;
 fn optimize<S, U>(
     num_u: usize,
     asset: f64,
     option_data: &[OptionDataMaturity],
-    init_params: Vec<f64>,
+    mut init_params: Vec<f64>,
     max_strike: f64,
     rate: f64,
     max_iter: u64,
     cf_inst: S,
-    generate_new_params: U,
+    mut generate_new_params: U,
 ) -> Result<Vec<f64>, ParameterError>
 where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    U: Fn() -> Vec<f64> + Sync,
+    U: FnMut() -> Vec<f64> + Sync,
 {
-    let linesearch = MoreThuenteLineSearch::new();
-    let solver = LBFGS::new(linesearch, 7);
     let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, max_strike, rate, &cf_inst);
-    let obj_fn = ObjFn { obj_fn: &obj_fn };
     let mut all_good = false;
     for _ in 0..100 {
+        let obj_fn = ObjFn { obj_fn: &obj_fn };
+        let linesearch = MoreThuenteLineSearch::new();
+        let solver = LBFGS::new(linesearch, 7);
         let res = Executor::new(obj_fn, solver, init_params)
             .max_iters(max_iter)
             .run();
         match res {
             Ok(result) => {
-                if result.state.get_best_cost() > 0.0001 {
+                if result.state.get_best_cost() > MAX_ACCEPTABLE_COST_FUNCTION_VALUE {
                     init_params = generate_new_params();
                 } else {
                     init_params = result.state.get_best_param();
                     all_good = true;
                     break;
                 }
+            }
+            Err(_) => {
+                init_params = generate_new_params();
             }
         };
     }
@@ -268,7 +252,7 @@ pub fn get_option_calibration_results_as_json(
     let mut rnd = UnifRnd::new(seed);
     match model_choice {
         CGMY => {
-            let (cf_inst, init_params, constraints) = get_cgmy_calibration(rate);
+            let (cf_inst, init_params) = get_cgmy_calibration(rate);
             let results = optimize(
                 num_u,
                 asset,
@@ -278,7 +262,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
-                || generate_cgmy_params(&mut rnd, &constraints),
+                || generate_cgmy_params(&mut rnd, &CGMY_CONSTRAINTS),
             )?;
             match &results[..] {
                 [c, g, m, y, sigma, v0, speed, eta_v, rho] => {
@@ -300,7 +284,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         MERTON => {
-            let (cf_inst, init_params, constraints) = get_merton_calibration(rate);
+            let (cf_inst, init_params) = get_merton_calibration(rate);
             let results = optimize(
                 num_u,
                 asset,
@@ -310,7 +294,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
-                || generate_merton_params(&mut rnd, &constraints),
+                || generate_merton_params(&mut rnd, &MERTON_CONSTRAINTS),
             )?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
@@ -331,7 +315,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         HESTON => {
-            let (cf_inst, init_params, constraints) = get_heston_calibration(rate);
+            let (cf_inst, init_params) = get_heston_calibration(rate);
             let results = optimize(
                 num_u,
                 asset,
@@ -341,7 +325,7 @@ pub fn get_option_calibration_results_as_json(
                 rate,
                 max_iter,
                 &cf_inst,
-                || generate_heston_params(&mut rnd, &constraints),
+                || generate_heston_params(&mut rnd, &HESTON_CONSTRAINTS),
             )?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CFParameters::Heston(HestonParameters {
@@ -367,7 +351,7 @@ pub fn get_option_calibration_results_as_json(
 mod tests {
     use crate::calibration_maps::*;
     use crate::constants::CALIBRATION_SCALAR;
-    use crate::constraints::get_merton_constraints;
+    use crate::constraints::MERTON_CONSTRAINTS;
     use approx::*;
     use fang_oost_option::option_calibration::OptionData;
     use fang_oost_option::option_pricing;
@@ -383,7 +367,6 @@ mod tests {
         let seed: [u8; 32] = [2; 32];
         let mut rng_seed = get_rng_seed(seed);
         let uniform = Uniform::new(0.0f64, 1.0);
-        let constr = get_merton_constraints();
         let asset = 178.46;
         let num_u = 256;
         let strikes = vec![
@@ -397,43 +380,43 @@ mod tests {
         let mut num_bad: usize = 0;
         (0..num_total).for_each(|_| {
             let lambda_sim = get_over_region(
-                constr.lambda.lower,
-                constr.lambda.upper,
+                MERTON_CONSTRAINTS.lambda.lower,
+                MERTON_CONSTRAINTS.lambda.upper,
                 uniform.sample(&mut rng_seed),
             );
             let mu_l_sim = get_over_region(
-                constr.mu_l.lower,
-                constr.mu_l.upper,
+                MERTON_CONSTRAINTS.mu_l.lower,
+                MERTON_CONSTRAINTS.mu_l.upper,
                 uniform.sample(&mut rng_seed),
             );
             let sig_l_sim = get_over_region(
-                constr.sig_l.lower,
-                constr.sig_l.upper,
+                MERTON_CONSTRAINTS.sig_l.lower,
+                MERTON_CONSTRAINTS.sig_l.upper,
                 uniform.sample(&mut rng_seed),
             );
             let sigma_sim = get_over_region(
-                constr.sigma.lower,
-                constr.sigma.upper,
+                MERTON_CONSTRAINTS.sigma.lower,
+                MERTON_CONSTRAINTS.sigma.upper,
                 uniform.sample(&mut rng_seed),
             );
             let v0_sim = get_over_region(
-                constr.v0.lower,
-                constr.v0.upper,
+                MERTON_CONSTRAINTS.v0.lower,
+                MERTON_CONSTRAINTS.v0.upper,
                 uniform.sample(&mut rng_seed),
             );
             let speed_sim = get_over_region(
-                constr.speed.lower,
-                constr.speed.upper,
+                MERTON_CONSTRAINTS.speed.lower,
+                MERTON_CONSTRAINTS.speed.upper,
                 uniform.sample(&mut rng_seed),
             );
             let eta_v_sim = get_over_region(
-                constr.eta_v.lower,
-                constr.eta_v.upper,
+                MERTON_CONSTRAINTS.eta_v.lower,
+                MERTON_CONSTRAINTS.eta_v.upper,
                 uniform.sample(&mut rng_seed),
             );
             let rho_sim = get_over_region(
-                constr.rho.lower,
-                constr.rho.upper,
+                MERTON_CONSTRAINTS.rho.lower,
+                MERTON_CONSTRAINTS.rho.upper,
                 uniform.sample(&mut rng_seed),
             );
 
@@ -453,12 +436,12 @@ mod tests {
                     strike: *strike,
                 })
                 .collect();
-            let iv: Vec<f64> = option_data
-                .iter()
-                .map(|OptionData { price, strike }| {
-                    black_scholes::call_iv(*price, asset, *strike, rate, maturity).unwrap()
-                })
-                .collect();
+            /*let iv: Vec<f64> = option_data
+            .iter()
+            .map(|OptionData { price, strike }| {
+                black_scholes::call_iv(*price, asset, *strike, rate, maturity).unwrap()
+            })
+            .collect();*/
             let option_data = vec![OptionDataMaturity {
                 maturity,
                 option_data,
@@ -472,6 +455,7 @@ mod tests {
                 num_u,
                 asset,
                 rate,
+                [42; 32],
             );
             match result {
                 Ok(res) => {
@@ -480,14 +464,14 @@ mod tests {
                         _ => Err("bad result"),
                     };
                     let params = params.unwrap();
-                    /*assert_abs_diff_eq!(params.lambda, lambda_sim, epsilon = 0.01);
+                    assert_abs_diff_eq!(params.lambda, lambda_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.mu_l, mu_l_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.sig_l, sig_l_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.sigma, sigma_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.v0, v0_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.speed, speed_sim, epsilon = 0.01);
                     assert_abs_diff_eq!(params.eta_v, eta_v_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.rho, rho_sim, epsilon = 0.01);*/
+                    assert_abs_diff_eq!(params.rho, rho_sim, epsilon = 0.01);
                 }
                 Err(_) => {
                     num_bad = num_bad + 1;

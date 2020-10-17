@@ -3,9 +3,9 @@ use crate::constants::{
     PUT_THETA, RISK_MEASURES,
 };
 use crate::constraints::{
-    check_cgmy_parameters, check_heston_parameters, check_merton_parameters, get_cgmy_constraints,
-    get_heston_constraints, get_merton_constraints, throw_no_convergence_error, CFParameters,
-    CGMYParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
+    check_cgmy_parameters, check_heston_parameters, check_merton_parameters,
+    throw_no_convergence_error, CFParameters, CGMYParameters, ErrorType, HestonParameters,
+    MertonParameters, ParameterError, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
 
 use fang_oost_option::option_pricing;
@@ -51,7 +51,7 @@ fn get_cgmy_cf(
     maturity: f64,
     rate: f64,
 ) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
-    check_cgmy_parameters(&cf_parameters, &get_cgmy_constraints())?;
+    check_cgmy_parameters(&cf_parameters, &CGMY_CONSTRAINTS)?;
     let CGMYParameters {
         c,
         g,
@@ -74,7 +74,7 @@ fn get_merton_cf(
     maturity: f64,
     rate: f64,
 ) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
-    check_merton_parameters(&cf_parameters, &get_merton_constraints())?;
+    check_merton_parameters(&cf_parameters, &MERTON_CONSTRAINTS)?;
     let MertonParameters {
         lambda,
         mu_l,
@@ -97,7 +97,7 @@ fn get_heston_cf(
     maturity: f64,
     rate: f64,
 ) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
-    check_heston_parameters(&cf_parameters, &get_heston_constraints())?;
+    check_heston_parameters(&cf_parameters, &HESTON_CONSTRAINTS)?;
     let HestonParameters {
         sigma,
         v0,
@@ -425,7 +425,6 @@ mod tests {
         let seed: [u8; 32] = [2; 32];
         let mut rng_seed = get_rng_seed(seed);
         let uniform = Uniform::new(0.0f64, 1.0);
-        let constr = get_merton_constraints();
         let asset = 178.46;
         let num_u = 256;
         let strikes = vec![
@@ -439,43 +438,43 @@ mod tests {
         let mut num_bad: usize = 0;
         (0..num_total).for_each(|_| {
             let lambda_sim = get_over_region(
-                constr.lambda.lower,
-                constr.lambda.upper,
+                MERTON_CONSTRAINTS.lambda.lower,
+                MERTON_CONSTRAINTS.lambda.upper,
                 uniform.sample(&mut rng_seed),
             );
             let mu_l_sim = get_over_region(
-                constr.mu_l.lower,
-                constr.mu_l.upper,
+                MERTON_CONSTRAINTS.mu_l.lower,
+                MERTON_CONSTRAINTS.mu_l.upper,
                 uniform.sample(&mut rng_seed),
             );
             let sig_l_sim = get_over_region(
-                constr.sig_l.lower,
-                constr.sig_l.upper,
+                MERTON_CONSTRAINTS.sig_l.lower,
+                MERTON_CONSTRAINTS.sig_l.upper,
                 uniform.sample(&mut rng_seed),
             );
             let sigma_sim = get_over_region(
-                constr.sigma.lower,
-                constr.sigma.upper,
+                MERTON_CONSTRAINTS.sigma.lower,
+                MERTON_CONSTRAINTS.sigma.upper,
                 uniform.sample(&mut rng_seed),
             );
             let v0_sim = get_over_region(
-                constr.v0.lower,
-                constr.v0.upper,
+                MERTON_CONSTRAINTS.v0.lower,
+                MERTON_CONSTRAINTS.v0.upper,
                 uniform.sample(&mut rng_seed),
             );
             let speed_sim = get_over_region(
-                constr.speed.lower,
-                constr.speed.upper,
+                MERTON_CONSTRAINTS.speed.lower,
+                MERTON_CONSTRAINTS.speed.upper,
                 uniform.sample(&mut rng_seed),
             );
             let eta_v_sim = get_over_region(
-                constr.eta_v.lower,
-                constr.eta_v.upper,
+                MERTON_CONSTRAINTS.eta_v.lower,
+                MERTON_CONSTRAINTS.eta_v.upper,
                 uniform.sample(&mut rng_seed),
             );
             let rho_sim = get_over_region(
-                constr.rho.lower,
-                constr.rho.upper,
+                MERTON_CONSTRAINTS.rho.lower,
+                MERTON_CONSTRAINTS.rho.upper,
                 uniform.sample(&mut rng_seed),
             );
 
