@@ -5,11 +5,11 @@ use crate::constraints::{
 };
 use argmin::prelude::*;
 use argmin::solver::linesearch::MoreThuenteLineSearch;
+use argmin::solver::particleswarm::*;
 use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
 use num_complex::Complex;
-
 /** needed for calibration */
 struct ObjFn<'a> {
     obj_fn: &'a (dyn Fn(&[f64]) -> f64 + Sync),
@@ -25,7 +25,7 @@ impl ArgminOp for ObjFn<'_> {
         let ofn = self.obj_fn;
         Ok(ofn(&param))
     }
-
+    //this function only needed for lbfgs
     fn gradient(&self, param: &Vec<f64>) -> Result<Vec<f64>, Error> {
         let ofn = self.obj_fn;
         Ok((*param).central_diff(&|x| ofn(&x)))
@@ -121,6 +121,7 @@ fn get_obj_fn_mse<'a, 'b: 'a, T, S>(
     num_u: usize,
     asset: f64,
     rate: f64,
+    constraints: &'b [cuckoo::UpperLower],
     get_max_strike: S,
     cf_fn: T,
 ) -> impl Fn(&[f64]) -> f64 + 'a
@@ -129,6 +130,11 @@ where
     S: Fn(&[f64], f64) -> f64 + 'b + Sync,
 {
     move |params| {
+        /*for (param, bound) in params.iter().zip(constraints) {
+            if param < &bound.lower || param > &bound.upper {
+                return 100000.0;
+            }
+        }*/
         fang_oost_option::option_calibration::obj_fn_real(
             num_u,
             asset,
@@ -144,7 +150,7 @@ where
 //const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.00000001;
 const NEST_SIZE: usize = 25;
 const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
-const TOL: f64 = 0.00001; //doesn't need to be very accurate; just needs to get ballpark
+const TOL: f64 = 0.000000001; //doesn't need to be very accurate; just needs to get ballpark
 
 fn optimize<T, S>(
     num_u: usize,
@@ -160,19 +166,35 @@ where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
-    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
-    let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
+    let obj_fn = get_obj_fn_mse(
+        &option_data,
+        num_u,
+        asset,
+        rate,
+        &ul,
+        &get_max_strike,
+        &cf_inst,
+    );
+    /*let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
         cuckoo::get_rng_system_seed()
-    })?;
+    })?;*/
+    /*search_region: (P, P),
+    num_particles: usize,
+    weight_momentum: F,
+    weight_particle: F,
+    weight_swarm: F,*/
+    //let space=
+    //let solver = ParticleSwarm::new((vec![-4.0, -4.0], vec![4.0, 4.0]), 100, 0.5, 0.0, 0.5)?;
+
     for param in optimal_parameters.iter() {
         println!("this is param: {}", param);
     }
     let obj_fn = ObjFn { obj_fn: &obj_fn };
+    let executor = Executor::new(obj_fn, solver, init_param).max_iters(15);
     let linesearch = MoreThuenteLineSearch::new();
     // m between 3 and 20 yield "good results" according to
     // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-    let solver = LBFGS::new(linesearch, 7).with_tol_cost(-1.0); //never converges
-                                                                //.with_tol_grad(-1.0); //never converges
+    let solver = LBFGS::new(linesearch, 10).with_tol_cost(-1.0);
     let res = Executor::new(obj_fn, solver, optimal_parameters)
         .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
         .max_iters(max_iter)

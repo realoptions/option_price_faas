@@ -11,7 +11,7 @@ autobins = false
 edition = "2018"
 
 [dependencies]
-fang_oost_option = "0.30.5"
+fang_oost_option = "0.30.8"
 fang_oost = "0.14.0"
 serde = "^1"
 serde_json = "^1"
