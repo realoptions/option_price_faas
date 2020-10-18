@@ -121,7 +121,6 @@ fn get_obj_fn_mse<'a, 'b: 'a, T, S>(
     num_u: usize,
     asset: f64,
     rate: f64,
-    constraints: &'b [cuckoo::UpperLower],
     get_max_strike: S,
     cf_fn: T,
 ) -> impl Fn(&[f64]) -> f64 + 'a
@@ -130,11 +129,6 @@ where
     S: Fn(&[f64], f64) -> f64 + 'b + Sync,
 {
     move |params| {
-        /*for (param, bound) in params.iter().zip(constraints) {
-            if param < &bound.lower || param > &bound.upper {
-                return 100000.0;
-            }
-        }*/
         fang_oost_option::option_calibration::obj_fn_real(
             num_u,
             asset,
@@ -166,44 +160,27 @@ where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
-    let obj_fn = get_obj_fn_mse(
-        &option_data,
-        num_u,
-        asset,
-        rate,
-        &ul,
-        &get_max_strike,
-        &cf_inst,
-    );
-    /*let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
-        cuckoo::get_rng_system_seed()
-    })?;*/
-    /*search_region: (P, P),
-    num_particles: usize,
-    weight_momentum: F,
-    weight_particle: F,
-    weight_swarm: F,*/
-    //let space=
-    //let solver = ParticleSwarm::new((vec![-4.0, -4.0], vec![4.0, 4.0]), 100, 0.5, 0.0, 0.5)?;
+    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
+    loop {
+        let (optimal_parameters, _) =
+            cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
+                cuckoo::get_rng_system_seed()
+            })?;
 
-    for param in optimal_parameters.iter() {
-        println!("this is param: {}", param);
-    }
-    let obj_fn = ObjFn { obj_fn: &obj_fn };
-    let executor = Executor::new(obj_fn, solver, init_param).max_iters(15);
-    let linesearch = MoreThuenteLineSearch::new();
-    // m between 3 and 20 yield "good results" according to
-    // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-    let solver = LBFGS::new(linesearch, 10).with_tol_cost(-1.0);
-    let res = Executor::new(obj_fn, solver, optimal_parameters)
-        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
-        .max_iters(max_iter)
-        .run();
-    match res {
-        Ok(result) => Ok(result.state.get_best_param()),
-        Err(e) => {
-            println!("Error! {}", e);
-            Err(ParameterError::new(&ErrorType::NoConvergence()))
+        for param in optimal_parameters.iter() {
+            println!("this is param: {}", param);
+        }
+        let obj_fn = ObjFn { obj_fn: &obj_fn };
+        let linesearch = MoreThuenteLineSearch::new();
+        // m between 3 and 20 yield "good results" according to
+        // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
+        let solver = LBFGS::new(linesearch, 10).with_tol_cost(-1.0);
+        let res = Executor::new(obj_fn, solver, optimal_parameters)
+            .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+            .max_iters(max_iter)
+            .run()?;
+        if res.state.iter != max_iter {
+            return Ok(res.state.best_param);
         }
     }
 }
