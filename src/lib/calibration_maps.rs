@@ -9,6 +9,17 @@ use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
 use num_complex::Complex;
+
+pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
+    match option_type {
+        "cgmy" => Ok(CGMY),
+        "heston" => Ok(HESTON),
+        "merton" => Ok(MERTON),
+        _ => Err(ParameterError::new(&ErrorType::FunctionError(
+            option_type.to_string(),
+        ))),
+    }
+}
 /** needed for calibration */
 struct ObjFn<'a> {
     obj_fn: &'a (dyn Fn(&[f64]) -> f64 + Sync),
@@ -142,7 +153,7 @@ where
 
 const NEST_SIZE: usize = 25;
 const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
-const TOL: f64 = 0.000000001; //doesn't need to be very accurate; just needs to get ballpark
+const TOL: f64 = 0.0000001; //doesn't need to be very accurate; just needs to get ballpark
 
 fn optimize<T, S>(
     num_u: usize,
@@ -165,9 +176,6 @@ where
                 cuckoo::get_rng_system_seed()
             })?;
 
-        for param in optimal_parameters.iter() {
-            println!("this is param: {}", param);
-        }
         let obj_fn = ObjFn { obj_fn: &obj_fn };
         let linesearch = MoreThuenteLineSearch::new();
         // m between 3 and 20 yield "good results" according to

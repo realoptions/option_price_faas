@@ -1,9 +1,9 @@
+use fang_oost_option::option_calibration::OptionDataMaturity;
 use rocket::response::Responder;
 use rocket_contrib::json::{JsonError, JsonValue};
 use serde_derive::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
-
 pub enum ErrorType {
     OutOfBounds(String),
     NoExist(String),
@@ -113,6 +113,15 @@ pub struct HestonParameters {
     pub eta_v: f64,
     pub rho: f64,
 }
+
+#[derive(Deserialize)]
+pub struct CalibrationParameters {
+    pub option_data: Vec<OptionDataMaturity>,
+    pub asset: f64,
+    pub num_u: usize,
+    pub rate: f64,
+}
+
 impl CGMYParameters {
     fn to_vector(&self) -> Vec<(f64, &str)> {
         vec![

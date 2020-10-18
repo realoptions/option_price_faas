@@ -10,7 +10,7 @@ use rocket_contrib::json::{Json, JsonError, JsonValue};
 use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
-use utils::{auth, constraints, pricing_maps};
+use utils::{auth, calibration_maps, constraints, pricing_maps};
 
 #[get("/<model>/parameters/parameter_ranges")]
 pub fn parameters(_key: auth::ApiKey, model: &RawStr) -> JsonValue {
@@ -62,6 +62,33 @@ pub fn calculator(
         maturity,
         rate,
         &strikes_unwrap,
+    )?;
+    Ok(json!(results))
+}
+#[post("/<model>/calibrator/call?", data = "<calibration_parameters>")]
+pub fn calibrator(
+    _key: auth::ApiKey,
+    model: &RawStr,
+    calibration_parameters: Result<Json<constraints::CalibrationParameters>, JsonError>,
+) -> Result<JsonValue, constraints::ParameterError> {
+    let calibration_parameters = calibration_parameters?;
+    let constraints::CalibrationParameters {
+        rate,
+        asset,
+        num_u: num_u_base,
+        option_data,
+    } = calibration_parameters.into_inner();
+    let model_indicator = calibration_maps::get_model_indicators(model)?;
+    let max_iter = 200;
+    let num_u = (2 as usize).pow(num_u_base as u32);
+    let results = calibration_maps::get_option_calibration_results_as_json(
+        model_indicator,
+        &option_data,
+        OPTION_SCALE,
+        max_iter,
+        num_u,
+        asset,
+        rate,
     )?;
     Ok(json!(results))
 }
