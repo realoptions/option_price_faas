@@ -1,8 +1,7 @@
 use crate::constants::{CGMY, HESTON, MERTON};
 use crate::constraints::{
-    CFParameters, CGMYConstraints, CGMYParameters, ErrorType, HestonConstraints, HestonParameters,
-    MertonConstraints, MertonParameters, ParameterError, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS,
-    MERTON_CONSTRAINTS,
+    CFParameters, CGMYParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
+    CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
 use argmin::prelude::*;
 use argmin::solver::linesearch::MoreThuenteLineSearch;
@@ -10,7 +9,6 @@ use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
 use num_complex::Complex;
-use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
 
 /** needed for calibration */
 struct ObjFn<'a> {
@@ -166,7 +164,9 @@ where
     let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
         cuckoo::get_rng_system_seed()
     })?;
-
+    for param in optimal_parameters.iter() {
+        println!("this is param: {}", param);
+    }
     let obj_fn = ObjFn { obj_fn: &obj_fn };
     let linesearch = MoreThuenteLineSearch::new();
     // m between 3 and 20 yield "good results" according to

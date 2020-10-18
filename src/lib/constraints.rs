@@ -420,14 +420,14 @@ let constraints = vec![
 ];*/
 pub const HESTON_CONSTRAINTS: HestonConstraints = HestonConstraints {
     sigma: &ConstraintsSchema {
-        lower: 0.0,
-        upper: 0.6,
+        lower: 0.001,
+        upper: 1.0,
         types: "float",
         description: "Square root of mean of variance process",
     },
     v0: &ConstraintsSchema {
         lower: 0.0,
-        upper: 2.0,
+        upper: 1.5,
         types: "float",
         description: "Square root of initial value of the instantaneous variance",
     },
@@ -439,7 +439,7 @@ pub const HESTON_CONSTRAINTS: HestonConstraints = HestonConstraints {
     },
     eta_v: &ConstraintsSchema {
         lower: 0.0,
-        upper: 4.0,
+        upper: 3.0,
         types: "float",
         description: "Vol of vol: volatility of instantaneous variance",
     },
