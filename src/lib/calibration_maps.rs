@@ -5,7 +5,6 @@ use crate::constraints::{
 };
 use argmin::prelude::*;
 use argmin::solver::linesearch::MoreThuenteLineSearch;
-use argmin::solver::particleswarm::*;
 use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
@@ -141,7 +140,6 @@ where
     }
 }
 
-//const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.00000001;
 const NEST_SIZE: usize = 25;
 const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
 const TOL: f64 = 0.000000001; //doesn't need to be very accurate; just needs to get ballpark
@@ -339,8 +337,7 @@ mod tests {
         ];
         let maturity = 0.86;
         let rate = 0.02;
-        //let max_strike = 5000.0;
-        let num_total: usize = 100;
+        let num_total: usize = 10;
         let mut num_bad: usize = 0;
         (0..num_total).for_each(|_| {
             let lambda_sim = get_over_region(
