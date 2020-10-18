@@ -465,6 +465,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cuckoo"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcf96c8836499f9af61423b20a0b70a4aeddb5ae3676e9ef7ad8fa4f223ff0ff"
+dependencies = [
+ "byteorder",
+ "rand 0.5.6",
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "devise"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1155,6 +1167,7 @@ dependencies = [
  "cf_dist_utils",
  "cf_functions",
  "criterion",
+ "cuckoo",
  "fang_oost",
  "fang_oost_option",
  "finitediff",

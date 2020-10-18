@@ -27,6 +27,7 @@ hex-literal = "0.3.1"
 argmin = "0.3"
 finitediff = "0.1"
 rand = "0.5"
+cuckoo = "0.8"
 
 [dependencies.rocket_contrib]
 version = "0.4.5"

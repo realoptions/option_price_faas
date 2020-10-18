@@ -44,6 +44,11 @@ impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
         ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
     }
 }
+impl From<cuckoo::IndexError> for ParameterError {
+    fn from(_error: cuckoo::IndexError) -> ParameterError {
+        ParameterError::new(&ErrorType::NoConvergence())
+    }
+}
 impl From<argmin::core::Error> for ParameterError {
     fn from(error: argmin::core::Error) -> ParameterError {
         ParameterError::new(&ErrorType::OptimizationError(error.to_string()))

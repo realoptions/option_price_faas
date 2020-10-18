@@ -38,12 +38,12 @@ fn get_cgmy_calibration(
     rate: f64,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
+    Vec<cuckoo::UpperLower>,
 ) {
-    let init_params = CGMY_CONSTRAINTS
+    let bounds = CGMY_CONSTRAINTS
         .to_vector()
         .into_iter()
-        .map(|v| convert_constraints_to_mid(&v))
+        .map(|v| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
@@ -55,7 +55,7 @@ fn get_cgmy_calibration(
                 Complex::<f64>::new(0.0, 0.0)
             }
         },
-        init_params,
+        bounds,
     )
 }
 
@@ -63,12 +63,12 @@ fn get_merton_calibration(
     rate: f64,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
+    Vec<cuckoo::UpperLower>,
 ) {
-    let init_params = MERTON_CONSTRAINTS
+    let bounds = MERTON_CONSTRAINTS
         .to_vector()
         .into_iter()
-        .map(|v| convert_constraints_to_mid(&v))
+        .map(|v| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
@@ -82,7 +82,7 @@ fn get_merton_calibration(
                 Complex::<f64>::new(0.0, 0.0)
             }
         },
-        init_params,
+        bounds,
     )
 }
 
@@ -90,12 +90,12 @@ fn get_heston_calibration(
     rate: f64,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
+    Vec<cuckoo::UpperLower>,
 ) {
-    let init_params = HESTON_CONSTRAINTS
+    let bounds = HESTON_CONSTRAINTS
         .to_vector()
         .into_iter()
-        .map(|v| convert_constraints_to_mid(&v))
+        .map(|v| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
@@ -106,12 +106,17 @@ fn get_heston_calibration(
                 Complex::<f64>::new(0.0, 0.0) //can never get here
             }
         },
-        init_params,
+        bounds,
     )
 }
 
-fn convert_constraints_to_mid(constraint: &crate::constraints::ConstraintsSchema) -> f64 {
-    (constraint.upper + constraint.lower) * 0.5
+fn convert_constraints_to_cuckoo_ul(
+    constraint: &crate::constraints::ConstraintsSchema,
+) -> cuckoo::UpperLower {
+    cuckoo::UpperLower {
+        upper: constraint.upper,
+        lower: constraint.lower,
+    }
 }
 fn get_obj_fn_mse<'a, 'b: 'a, T, S>(
     option_datum: &'b [OptionDataMaturity],
@@ -134,124 +139,50 @@ where
             &params,
             &get_max_strike,
             &cf_fn,
-        ) * 15.0
+        )
     }
 }
-struct UnifRnd {
-    rng_seed: StdRng,
-    uniform: Uniform<f64>,
-}
 
-impl UnifRnd {
-    fn new(seed: [u8; 32]) -> UnifRnd {
-        UnifRnd {
-            rng_seed: SeedableRng::from_seed(seed),
-            uniform: Uniform::new(0.0f64, 1.0),
-        }
-    }
-}
-fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
-    lower + (upper - lower) * rand
-}
-fn generate_cgmy_params(rnd: &mut UnifRnd, constraints: &CGMYConstraints) -> Vec<f64> {
-    constraints
-        .to_vector()
-        .into_iter()
-        .map(|constraint| {
-            get_over_region(
-                constraint.lower,
-                constraint.upper,
-                rnd.uniform.sample(&mut rnd.rng_seed),
-            )
-        })
-        .collect()
-}
-fn generate_heston_params(rnd: &mut UnifRnd, constraints: &HestonConstraints) -> Vec<f64> {
-    constraints
-        .to_vector()
-        .into_iter()
-        .map(|constraint| {
-            get_over_region(
-                constraint.lower,
-                constraint.upper,
-                rnd.uniform.sample(&mut rnd.rng_seed),
-            )
-        })
-        .collect()
-}
-fn generate_merton_params(rnd: &mut UnifRnd, constraints: &MertonConstraints) -> Vec<f64> {
-    constraints
-        .to_vector()
-        .into_iter()
-        .map(|constraint| {
-            get_over_region(
-                constraint.lower,
-                constraint.upper,
-                rnd.uniform.sample(&mut rnd.rng_seed),
-            )
-        })
-        .collect()
-}
+//const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.00000001;
+const NEST_SIZE: usize = 25;
+const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
+const TOL: f64 = 0.00001; //doesn't need to be very accurate; just needs to get ballpark
 
-const MAX_ACCEPTABLE_COST_FUNCTION_VALUE: f64 = 0.0001;
-//const TOL_GRAD: f64 = 0.000000000001;
-//.with_tol_grad(TOL_GRAD);
-//.with_tol_cost(MAX_ACCEPTABLE_COST_FUNCTION_VALUE);
-fn optimize<T, S, U>(
+fn optimize<T, S>(
     num_u: usize,
     asset: f64,
     option_data: &[OptionDataMaturity],
-    mut init_params: Vec<f64>,
+    ul: &[cuckoo::UpperLower],
     rate: f64,
     max_iter: u64,
     get_max_strike: T,
     cf_inst: S,
-    mut generate_new_params: U,
 ) -> Result<Vec<f64>, ParameterError>
 where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    U: FnMut() -> Vec<f64> + Sync,
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
     let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
-    let mut all_good = false;
-    //TODO!  make the 100 a constant
-    for _ in 0..100 {
-        let obj_fn = ObjFn { obj_fn: &obj_fn };
-        let linesearch = MoreThuenteLineSearch::new();
-        // m between 3 and 20 yield "good results" according to
-        // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-        let solver = LBFGS::new(linesearch, 7);
-        let res = Executor::new(obj_fn, solver, init_params)
-            .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
-            .max_iters(max_iter)
-            .run();
-        match res {
-            Ok(result) => {
-                if result.state.get_best_cost() > MAX_ACCEPTABLE_COST_FUNCTION_VALUE {
-                    println!("best cost {}", result.state.get_best_cost());
-                    for element in result.state.get_best_param().iter() {
-                        println!("element value {}", element);
-                    }
-                    //didn't converge
-                    init_params = generate_new_params();
-                } else {
-                    init_params = result.state.get_best_param();
-                    all_good = true;
-                    break;
-                }
-            }
-            Err(e) => {
-                println!("this is err: {}", e);
+    let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
+        cuckoo::get_rng_system_seed()
+    })?;
 
-                init_params = generate_new_params();
-            }
-        };
-    }
-    if all_good {
-        Ok(init_params)
-    } else {
-        Err(ParameterError::new(&ErrorType::NoConvergence()))
+    let obj_fn = ObjFn { obj_fn: &obj_fn };
+    let linesearch = MoreThuenteLineSearch::new();
+    // m between 3 and 20 yield "good results" according to
+    // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
+    let solver = LBFGS::new(linesearch, 7).with_tol_cost(-1.0); //never converges
+                                                                //.with_tol_grad(-1.0); //never converges
+    let res = Executor::new(obj_fn, solver, optimal_parameters)
+        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+        .max_iters(max_iter)
+        .run();
+    match res {
+        Ok(result) => Ok(result.state.get_best_param()),
+        Err(e) => {
+            println!("Error! {}", e);
+            Err(ParameterError::new(&ErrorType::NoConvergence()))
+        }
     }
 }
 pub fn get_option_calibration_results_as_json(
@@ -262,12 +193,10 @@ pub fn get_option_calibration_results_as_json(
     num_u: usize,
     asset: f64,
     rate: f64,
-    seed: [u8; 32],
 ) -> Result<CFParameters, ParameterError> {
-    let mut rnd = UnifRnd::new(seed);
     match model_choice {
         CGMY => {
-            let (cf_inst, init_params) = get_cgmy_calibration(rate);
+            let (cf_inst, bounds) = get_cgmy_calibration(rate);
             let get_max_strike = |params: &[f64], maturity| {
                 let c = params[0];
                 let g = params[1];
@@ -282,12 +211,11 @@ pub fn get_option_calibration_results_as_json(
                 num_u,
                 asset,
                 &option_data,
-                init_params,
+                &bounds,
                 rate,
                 max_iter,
                 &get_max_strike,
                 &cf_inst,
-                || generate_cgmy_params(&mut rnd, &CGMY_CONSTRAINTS),
             )?;
             match &results[..] {
                 [c, g, m, y, sigma, v0, speed, eta_v, rho] => {
@@ -309,7 +237,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         MERTON => {
-            let (cf_inst, init_params) = get_merton_calibration(rate);
+            let (cf_inst, bounds) = get_merton_calibration(rate);
             let get_max_strike = |params: &[f64], maturity| {
                 let lambda = params[0];
                 let mu_l = params[1];
@@ -323,12 +251,11 @@ pub fn get_option_calibration_results_as_json(
                 num_u,
                 asset,
                 &option_data,
-                init_params,
+                &bounds,
                 rate,
                 max_iter,
                 &get_max_strike,
                 &cf_inst,
-                || generate_merton_params(&mut rnd, &MERTON_CONSTRAINTS),
             )?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
@@ -349,7 +276,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         HESTON => {
-            let (cf_inst, init_params) = get_heston_calibration(rate);
+            let (cf_inst, bounds) = get_heston_calibration(rate);
             let get_max_strike = |params: &[f64], maturity: f64| {
                 let sigma = params[0];
                 let vol = sigma * maturity.sqrt();
@@ -359,12 +286,11 @@ pub fn get_option_calibration_results_as_json(
                 num_u,
                 asset,
                 &option_data,
-                init_params,
+                &bounds,
                 rate,
                 max_iter,
                 &get_max_strike,
                 &cf_inst,
-                || generate_heston_params(&mut rnd, &HESTON_CONSTRAINTS),
             )?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CFParameters::Heston(HestonParameters {
@@ -492,7 +418,6 @@ mod tests {
                 num_u,
                 asset,
                 rate,
-                [42; 32],
             );
             match result {
                 Ok(res) => {
@@ -582,7 +507,6 @@ mod tests {
             num_u,
             stock,
             rate,
-            [42; 32],
         );
         match result {
             Ok(res) => {
@@ -597,10 +521,10 @@ mod tests {
                 assert_abs_diff_eq!(params.eta_v, c, epsilon = 0.01);
                 assert_abs_diff_eq!(params.rho, rho, epsilon = 0.01);
             }
-            Err(_) => panic!("Bad!"),
+            Err(e) => panic!(e),
         }
     }
-    #[test]
+    /*#[test]
     fn test_heston_exact() {
         let stock = 178.46;
         let rate = 0.0;
@@ -657,7 +581,7 @@ mod tests {
             option_data,
         }];
         let mut rnd = UnifRnd::new([42; 32]);
-        let (cf_inst, _) = get_heston_calibration(rate);
+        let (cf_inst, _, bounds) = get_heston_calibration(rate);
         let get_max_strike = |params: &[f64], maturity: f64| {
             let sigma = params[0];
             let vol = sigma * maturity.sqrt();
@@ -667,12 +591,11 @@ mod tests {
             num_u,
             stock,
             &option_data,
-            vec![sigma, v0, speed, eta_v, rho],
+            &bounds,
             rate,
             200,
             &get_max_strike,
             &cf_inst,
-            || generate_heston_params(&mut rnd, &HESTON_CONSTRAINTS),
         )
         .unwrap();
         assert_abs_diff_eq!(result[0], sigma, epsilon = 0.01);
@@ -680,5 +603,5 @@ mod tests {
         assert_abs_diff_eq!(result[2], speed, epsilon = 0.01);
         assert_abs_diff_eq!(result[3], eta_v, epsilon = 0.01);
         assert_abs_diff_eq!(result[4], rho, epsilon = 0.01);
-    }
+    }*/
 }
