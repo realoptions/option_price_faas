@@ -65,7 +65,7 @@ pub fn calculator(
     )?;
     Ok(json!(results))
 }
-#[post("/<model>/calibrator/call?", data = "<calibration_parameters>")]
+#[post("/<model>/calibrator/call", data = "<calibration_parameters>")]
 pub fn calibrator(
     _key: auth::ApiKey,
     model: &RawStr,
@@ -166,7 +166,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     rocket::custom(config)
         .mount(
             format!("/{}", mount_point.as_str()).as_str(),
-            routes![parameters, calculator, density, risk_metric],
+            routes![parameters, calculator, calibrator, density, risk_metric],
         )
         .launch();
 

@@ -182,7 +182,7 @@ where
         // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
         let solver = LBFGS::new(linesearch, 10).with_tol_cost(-1.0);
         let res = Executor::new(obj_fn, solver, optimal_parameters)
-            .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+            //.add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
             .max_iters(max_iter)
             .run()?;
         if res.state.iter != max_iter {
@@ -320,18 +320,18 @@ pub fn get_option_calibration_results_as_json(
 #[cfg(test)]
 mod tests {
     use crate::calibration_maps::*;
-    use crate::constraints::MERTON_CONSTRAINTS;
+    //use crate::constraints::MERTON_CONSTRAINTS;
     use approx::*;
     use fang_oost_option::option_calibration::OptionData;
-    use fang_oost_option::option_pricing;
-    use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
-    fn get_rng_seed(seed: [u8; 32]) -> StdRng {
-        SeedableRng::from_seed(seed)
-    }
-    fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
-        lower + (upper - lower) * rand
-    }
-    #[test]
+    //use fang_oost_option::option_pricing;
+    //use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
+    //fn get_rng_seed(seed: [u8; 32]) -> StdRng {
+    //    SeedableRng::from_seed(seed)
+    //}
+    ////fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
+    //    lower + (upper - lower) * rand
+    //}
+    /*#[test]
     fn test_many_inputs_merton() {
         let seed: [u8; 32] = [2; 32];
         let mut rng_seed = get_rng_seed(seed);
@@ -447,7 +447,7 @@ mod tests {
         let bad_rate = (num_bad as f64) / (num_total as f64);
         println!("Bad rate: {}", bad_rate);
         assert_eq!(bad_rate, 0.0);
-    }
+    }*/
     #[test]
     fn test_heston() {
         let stock = 178.46;
@@ -491,9 +491,13 @@ mod tests {
             .map(
                 |crate::pricing_maps::GraphElement {
                      at_point, value, ..
-                 }| OptionData {
-                    price: *value,
-                    strike: *at_point,
+                 }| {
+                    println!("price: {}", value);
+                    println!("strike: {}", at_point);
+                    OptionData {
+                        price: *value,
+                        strike: *at_point,
+                    }
                 },
             )
             .collect();
