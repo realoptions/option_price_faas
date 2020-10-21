@@ -51,13 +51,15 @@ fn get_cgmy_calibration(
     let bounds = CGMY_CONSTRAINTS
         .to_vector()
         .into_iter()
-        .map(|v| convert_constraints_to_cuckoo_ul(&v))
+        .enumerate()
+        .filter(|(index, _)| index < &5)
+        .map(|(_, v)| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [c, g, m, y, sigma, v0, speed, eta_v, rho] => cf_functions::cgmy::cgmy_time_change_cf(
-                maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, *rho,
-            )(u),
+            [c, g, m, y, sigma, /*v0, speed, eta_v, rho*/] => (cf_functions::cgmy::cgmy_log_risk_neutral_cf(u,
+                *c, *g, *m, *y, rate, *sigma /*, *v0, *speed, *eta_v, *rho,*/
+            )*maturity).exp(),
             _ => {
                 //can never get here
                 Complex::<f64>::new(0.0, 0.0)
@@ -76,14 +78,17 @@ fn get_merton_calibration(
     let bounds = MERTON_CONSTRAINTS
         .to_vector()
         .into_iter()
-        .map(|v| convert_constraints_to_cuckoo_ul(&v))
+        .enumerate()
+        .filter(|(index, _)| index < &4)
+        .map(|(_, v)| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
-                cf_functions::merton::merton_time_change_cf(
-                    maturity, rate, *lambda, *mu_l, *sig_l, *sigma, *v0, *speed, *eta_v, *rho,
-                )(u)
+            [lambda, mu_l, sig_l, sigma/*, v0, speed, eta_v, rho*/] => {
+                (cf_functions::merton::merton_log_risk_neutral_cf(
+                    u, *lambda, *mu_l, *sig_l, rate, *sigma, /*, *v0, *speed, *eta_v, *rho,*/
+                ) * maturity)
+                    .exp()
             }
             _ => {
                 //can never get here
@@ -153,7 +158,7 @@ where
 
 const NEST_SIZE: usize = 25;
 const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
-const TOL: f64 = 0.0000001; //doesn't need to be very accurate; just needs to get ballpark
+const TOL: f64 = 0.00001; //doesn't need to be very accurate; just needs to get ballpark
 
 fn optimize<T, S>(
     num_u: usize,
@@ -170,25 +175,24 @@ where
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
     let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
-    loop {
-        let (optimal_parameters, _) =
-            cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
-                cuckoo::get_rng_system_seed()
-            })?;
+    //loop {
+    let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
+        cuckoo::get_rng_system_seed()
+    })?;
 
-        let obj_fn = ObjFn { obj_fn: &obj_fn };
-        let linesearch = MoreThuenteLineSearch::new();
-        // m between 3 and 20 yield "good results" according to
-        // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-        let solver = LBFGS::new(linesearch, 10).with_tol_cost(-1.0);
-        let res = Executor::new(obj_fn, solver, optimal_parameters)
-            //.add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
-            .max_iters(max_iter)
-            .run()?;
-        if res.state.iter != max_iter {
-            return Ok(res.state.best_param);
-        }
-    }
+    let obj_fn = ObjFn { obj_fn: &obj_fn };
+    let linesearch = MoreThuenteLineSearch::new();
+    // m between 3 and 20 yield "good results" according to
+    // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
+    let solver = LBFGS::new(linesearch, 10).with_tol_cost(f64::EPSILON);
+    let res = Executor::new(obj_fn, solver, optimal_parameters)
+        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+        .max_iters(max_iter)
+        .run()?;
+    //if res.state.iter != max_iter {
+    Ok(res.state.best_param)
+    //}
+    //}
 }
 pub fn get_option_calibration_results_as_json(
     model_choice: i32,
@@ -223,17 +227,17 @@ pub fn get_option_calibration_results_as_json(
                 &cf_inst,
             )?;
             match &results[..] {
-                [c, g, m, y, sigma, v0, speed, eta_v, rho] => {
+                [c, g, m, y, sigma/*, v0, speed, eta_v, rho*/] => {
                     Ok(CFParameters::CGMY(CGMYParameters {
                         c: *c,
                         g: *g,
                         m: *m,
                         y: *y,
                         sigma: *sigma,
-                        v0: *v0,
-                        speed: *speed,
-                        eta_v: *eta_v,
-                        rho: *rho,
+                        v0: 1.0,
+                        speed: 0.0,
+                        eta_v: 0.0,
+                        rho: 0.0,
                     }))
                 }
                 _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
@@ -263,16 +267,16 @@ pub fn get_option_calibration_results_as_json(
                 &cf_inst,
             )?;
             match &results[..] {
-                [lambda, mu_l, sig_l, sigma, v0, speed, eta_v, rho] => {
+                [lambda, mu_l, sig_l, sigma/*, v0, speed, eta_v, rho*/] => {
                     Ok(CFParameters::Merton(MertonParameters {
                         lambda: *lambda,
                         mu_l: *mu_l,
                         sig_l: *sig_l,
                         sigma: *sigma,
-                        v0: *v0,
-                        speed: *speed,
-                        eta_v: *eta_v,
-                        rho: *rho,
+                        v0: 1.0,
+                        speed: 0.0,
+                        eta_v: 0.0,
+                        rho: 0.0,
                     }))
                 }
                 _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
@@ -492,8 +496,6 @@ mod tests {
                 |crate::pricing_maps::GraphElement {
                      at_point, value, ..
                  }| {
-                    println!("price: {}", value);
-                    println!("strike: {}", at_point);
                     OptionData {
                         price: *value,
                         strike: *at_point,
@@ -511,7 +513,7 @@ mod tests {
             HESTON,
             &option_data,
             option_scale,
-            200,
+            400,
             num_u,
             stock,
             rate,
@@ -530,6 +532,189 @@ mod tests {
                 assert_abs_diff_eq!(params.rho, rho, epsilon = 0.01);
             }
             Err(e) => panic!(e),
+        }
+    }
+    #[test]
+    fn test_merton() {
+        let stock = 178.46;
+        let rate = 0.0;
+        let maturity = 1.0;
+        let b: f64 = 0.0398;
+        let a = 1.5768;
+        let c = 0.5751;
+        let rho = -0.5711;
+        let v0 = 0.0175;
+
+        let strikes = vec![
+            95.0, 100.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0,
+            210.0, 240.0, 250.0,
+        ];
+        let num_u = 256;
+        let option_scale = 10.0;
+        let heston_parameters =
+            crate::constraints::CFParameters::Heston(crate::constraints::HestonParameters {
+                sigma: b.sqrt(),
+                v0: v0,
+                speed: a,
+                eta_v: c,
+                rho,
+            });
+        let results = crate::pricing_maps::get_option_results_as_json(
+            crate::constants::CALL_PRICE,
+            false,
+            &heston_parameters,
+            option_scale,
+            num_u,
+            stock,
+            maturity,
+            rate,
+            &strikes,
+        )
+        .unwrap();
+
+        let option_data: Vec<OptionData> = results
+            .iter()
+            .map(
+                |crate::pricing_maps::GraphElement {
+                     at_point, value, ..
+                 }| {
+                    println!("price: {}", value);
+                    println!("strike: {}", at_point);
+                    OptionData {
+                        price: *value,
+                        strike: *at_point,
+                    }
+                },
+            )
+            .collect();
+
+        let option_data = vec![OptionDataMaturity {
+            maturity,
+            option_data,
+        }];
+
+        let result = get_option_calibration_results_as_json(
+            MERTON,
+            &option_data,
+            option_scale,
+            400,
+            num_u,
+            stock,
+            rate,
+        );
+        match result {
+            Ok(res) => {
+                let params = match res {
+                    CFParameters::Merton(params) => Ok(params),
+                    _ => Err("bad result"),
+                };
+                let params = params.unwrap();
+                println!("lambda: {}", params.lambda);
+                println!("mu_l: {}", params.mu_l);
+                println!("sig_l: {}", params.sig_l);
+                println!("sigma: {}", params.sigma);
+                println!("v0: {}", params.v0);
+                println!("speed: {}", params.speed);
+                println!("eta_v: {}", params.eta_v);
+                println!("rho: {}", params.rho);
+                //if gets here, then its a win (it converged)
+            }
+            Err(e) => {
+                println!("error!! {}", e);
+                panic!(e)
+            }
+        }
+    }
+    #[test]
+    fn test_cgmy() {
+        let stock = 178.46;
+        let rate = 0.0;
+        let maturity = 1.0;
+        let b: f64 = 0.0398;
+        let a = 1.5768;
+        let c = 0.5751;
+        let rho = -0.5711;
+        let v0 = 0.0175;
+
+        let strikes = vec![
+            95.0, 100.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0,
+            210.0, 240.0, 250.0,
+        ];
+        let num_u = 256;
+        let option_scale = 10.0;
+        let heston_parameters =
+            crate::constraints::CFParameters::Heston(crate::constraints::HestonParameters {
+                sigma: b.sqrt(),
+                v0: v0,
+                speed: a,
+                eta_v: c,
+                rho,
+            });
+        let results = crate::pricing_maps::get_option_results_as_json(
+            crate::constants::CALL_PRICE,
+            false,
+            &heston_parameters,
+            option_scale,
+            num_u,
+            stock,
+            maturity,
+            rate,
+            &strikes,
+        )
+        .unwrap();
+
+        let option_data: Vec<OptionData> = results
+            .iter()
+            .map(
+                |crate::pricing_maps::GraphElement {
+                     at_point, value, ..
+                 }| {
+                    println!("price: {}", value);
+                    println!("strike: {}", at_point);
+                    OptionData {
+                        price: *value,
+                        strike: *at_point,
+                    }
+                },
+            )
+            .collect();
+
+        let option_data = vec![OptionDataMaturity {
+            maturity,
+            option_data,
+        }];
+
+        let result = get_option_calibration_results_as_json(
+            CGMY,
+            &option_data,
+            option_scale,
+            400,
+            num_u,
+            stock,
+            rate,
+        );
+        match result {
+            Ok(res) => {
+                let params = match res {
+                    CFParameters::CGMY(params) => Ok(params),
+                    _ => Err("bad result"),
+                };
+                let params = params.unwrap();
+                println!("c: {}", params.c);
+                println!("g: {}", params.g);
+                println!("m: {}", params.m);
+                println!("y: {}", params.y);
+                println!("sigma: {}", params.sigma);
+                println!("v0: {}", params.v0);
+                println!("speed: {}", params.speed);
+                println!("eta_v: {}", params.eta_v);
+                println!("rho: {}", params.rho);
+                //if gets here, then its a win (it converged)
+            }
+            Err(e) => {
+                println!("error!! {}", e);
+                panic!(e)
+            }
         }
     }
     /*#[test]
