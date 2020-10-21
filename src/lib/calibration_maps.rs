@@ -175,7 +175,6 @@ where
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
     let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
-    //loop {
     let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
         cuckoo::get_rng_system_seed()
     })?;
@@ -186,13 +185,10 @@ where
     // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
     let solver = LBFGS::new(linesearch, 10).with_tol_cost(f64::EPSILON);
     let res = Executor::new(obj_fn, solver, optimal_parameters)
-        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+        //.add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
         .max_iters(max_iter)
         .run()?;
-    //if res.state.iter != max_iter {
     Ok(res.state.best_param)
-    //}
-    //}
 }
 pub fn get_option_calibration_results_as_json(
     model_choice: i32,
