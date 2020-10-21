@@ -105,7 +105,7 @@ pub fn calibrator(
         option_data,
     } = calibration_parameters.into_inner();
     let model_indicator = calibration_maps::get_model_indicators(model)?;
-    let max_iter = 200;
+    let max_iter = 400;
     let num_u = (2 as usize).pow(num_u_base as u32);
     let results = calibration_maps::get_option_calibration_results_as_json(
         model_indicator,

@@ -2395,7 +2395,7 @@ paths:
     post:
       operationId: calibrateCGMYOptions
       summary: Calibrator for computing parameters of CGMY process.
-      description: Calibrates option prices for an asset that follows an extended CGMY process.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
+      description: Calibrates option prices for an asset that follows a CGMY process with Brownian Motion but no time change.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
       responses:
         '200':
           description: CGMY parameters
@@ -2506,7 +2506,7 @@ paths:
     post:
       operationId: calibrateMertonOptions
       summary: Calibrator for computing parameters of Merton process.
-      description: Calibrates option prices for an asset that follows an extended Merton process.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
+      description: Calibrates option prices for an asset that follows an extended Merton process with Brownian Motion but no time change.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
       responses:
         '200':
           description: Merton parameters
