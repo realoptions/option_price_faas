@@ -45,15 +45,22 @@ impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
     }
 }
 impl From<cuckoo::IndexError> for ParameterError {
-    fn from(_error: cuckoo::IndexError) -> ParameterError {
-        ParameterError::new(&ErrorType::NoConvergence())
+    fn from(error: cuckoo::IndexError) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
     }
 }
+
+impl From<anyhow::Error> for ParameterError {
+    fn from(error: anyhow::Error) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
+    }
+}
+/*
 impl From<argmin::core::Error> for ParameterError {
     fn from(error: argmin::core::Error) -> ParameterError {
         ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
     }
-}
+}*/
 impl From<JsonError<'_>> for ParameterError {
     fn from(error: JsonError) -> ParameterError {
         let msg = match error {

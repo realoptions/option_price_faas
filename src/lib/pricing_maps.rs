@@ -19,9 +19,9 @@ use serde_derive::{Deserialize, Serialize};
 ///
 /// ```
 /// extern crate utils;
-/// use utils::maps;
+/// use utils::pricing_maps;
 /// # fn main() {
-/// let sensitivity = maps::get_fn_indicators(
+/// let sensitivity = pricing_maps::get_fn_indicators(
 ///     "put",
 ///     "price"
 /// ).unwrap();

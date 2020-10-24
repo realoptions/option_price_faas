@@ -3,7 +3,6 @@ const fetch = require('node-fetch')
 const { location } = require('./binaryLocation.json')
 const body = require('./example_calibration.json')
 const { spawn } = require('child_process')
-//jest.setTimeout(timeout)
 let server
 const port = '8090'
 const version = 'v2'

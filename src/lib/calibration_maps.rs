@@ -3,11 +3,12 @@ use crate::constraints::{
     CFParameters, CGMYParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
     CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
-use argmin::prelude::*;
+/*use argmin::prelude::*;
 use argmin::solver::linesearch::{HagerZhangLineSearch, MoreThuenteLineSearch};
-use argmin::solver::quasinewton::LBFGS;
+use argmin::solver::quasinewton::LBFGS;*/
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
+use liblbfgs::lbfgs;
 use num_complex::Complex;
 
 pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
@@ -21,6 +22,7 @@ pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
     }
 }
 /** needed for calibration */
+/*
 struct ObjFn<'a> {
     obj_fn: &'a (dyn Fn(&[f64]) -> f64 + Sync),
 }
@@ -40,7 +42,7 @@ impl ArgminOp for ObjFn<'_> {
         let ofn = self.obj_fn;
         Ok((*param).central_diff(&|x| ofn(&x)))
     }
-}
+}*/
 
 fn get_cgmy_calibration(
     rate: f64,
@@ -133,8 +135,8 @@ fn convert_constraints_to_cuckoo_ul(
 }
 
 const NEST_SIZE: usize = 25;
-const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
-const TOL: f64 = 0.00001; //doesn't need to be very accurate; just needs to get ballpark
+const NUM_SIMS: usize = 1500;
+const TOL: f64 = 0.0001; //doesn't need to be super accurate, just close enough for lbfgs
 
 fn optimize<T, S>(
     num_u: usize,
@@ -142,7 +144,7 @@ fn optimize<T, S>(
     option_data: &[OptionDataMaturity],
     ul: &[cuckoo::UpperLower],
     rate: f64,
-    max_iter: u64,
+    max_iter: usize,
     get_max_strike: T,
     cf_inst: S,
 ) -> Result<Vec<f64>, ParameterError>
@@ -158,27 +160,41 @@ where
         &get_max_strike,
         &cf_inst,
     );
-    let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
-        cuckoo::get_rng_system_seed()
-    })?;
+    let (mut optimal_parameters, _) =
+        cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
+            cuckoo::get_rng_system_seed()
+        })?;
 
-    let obj_fn = ObjFn { obj_fn: &obj_fn };
-    let linesearch = MoreThuenteLineSearch::new();
-    //let linesearch = HagerZhangLineSearch::new().epsilon(0.0)?;
-    // m between 3 and 20 yield "good results" according to
-    // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-    let solver = LBFGS::new(linesearch, 7).with_tol_cost(f64::EPSILON);
-    let res = Executor::new(obj_fn, solver, optimal_parameters)
-        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
-        .max_iters(max_iter)
-        .run()?;
-    Ok(res.state.best_param)
+    let evaluate = |x: &[f64], gx: &mut [f64]| {
+        for (index, value) in x.to_vec().central_diff(&|x| obj_fn(&x)).iter().enumerate() {
+            gx[index] = *value;
+        }
+        Ok(obj_fn(x))
+    };
+    let _result = lbfgs()
+        .with_max_iterations(max_iter)
+        .with_epsilon(f64::EPSILON)
+        .with_gradient_only()
+        .minimize(
+            &mut optimal_parameters, // input variables
+            evaluate,                // define how to evaluate function
+            |prgr| {
+                // define progress monitor
+                println!(
+                    "iter: {:}, value: {:}, line step: {:}",
+                    prgr.niter, prgr.fx, prgr.step
+                );
+                false
+            },
+        );
+    //println!("{}", "should get here always");
+    Ok(optimal_parameters)
 }
 pub fn get_option_calibration_results_as_json(
     model_choice: i32,
     option_data: &[OptionDataMaturity],
     option_scale: f64,
-    max_iter: u64,
+    max_iter: usize,
     num_u: usize,
     asset: f64,
     rate: f64,
@@ -300,134 +316,7 @@ pub fn get_option_calibration_results_as_json(
 #[cfg(test)]
 mod tests {
     use crate::calibration_maps::*;
-    //use crate::constraints::MERTON_CONSTRAINTS;
-    use approx::*;
     use fang_oost_option::option_calibration::OptionData;
-    //use fang_oost_option::option_pricing;
-    //use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
-    //fn get_rng_seed(seed: [u8; 32]) -> StdRng {
-    //    SeedableRng::from_seed(seed)
-    //}
-    ////fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
-    //    lower + (upper - lower) * rand
-    //}
-    /*#[test]
-    fn test_many_inputs_merton() {
-        let seed: [u8; 32] = [2; 32];
-        let mut rng_seed = get_rng_seed(seed);
-        let uniform = Uniform::new(0.0f64, 1.0);
-        let asset = 178.46;
-        let num_u = 256;
-        let option_scale = 10.0;
-        let strikes = vec![
-            95.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0, 210.0,
-            240.0, 250.0,
-        ];
-        let maturity = 0.86;
-        let rate = 0.02;
-        let num_total: usize = 10;
-        let mut num_bad: usize = 0;
-        (0..num_total).for_each(|_| {
-            let lambda_sim = get_over_region(
-                MERTON_CONSTRAINTS.lambda.lower,
-                MERTON_CONSTRAINTS.lambda.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let mu_l_sim = get_over_region(
-                MERTON_CONSTRAINTS.mu_l.lower,
-                MERTON_CONSTRAINTS.mu_l.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let sig_l_sim = get_over_region(
-                MERTON_CONSTRAINTS.sig_l.lower,
-                MERTON_CONSTRAINTS.sig_l.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let sigma_sim = get_over_region(
-                MERTON_CONSTRAINTS.sigma.lower,
-                MERTON_CONSTRAINTS.sigma.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let v0_sim = get_over_region(
-                MERTON_CONSTRAINTS.v0.lower,
-                MERTON_CONSTRAINTS.v0.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let speed_sim = get_over_region(
-                MERTON_CONSTRAINTS.speed.lower,
-                MERTON_CONSTRAINTS.speed.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let eta_v_sim = get_over_region(
-                MERTON_CONSTRAINTS.eta_v.lower,
-                MERTON_CONSTRAINTS.eta_v.upper,
-                uniform.sample(&mut rng_seed),
-            );
-            let rho_sim = get_over_region(
-                MERTON_CONSTRAINTS.rho.lower,
-                MERTON_CONSTRAINTS.rho.upper,
-                uniform.sample(&mut rng_seed),
-            );
-
-            let inst_cf = cf_functions::merton::merton_time_change_cf(
-                maturity, rate, lambda_sim, mu_l_sim, sig_l_sim, sigma_sim, v0_sim, speed_sim,
-                eta_v_sim, rho_sim,
-            );
-            let vol = cf_functions::merton::jump_diffusion_vol(
-                sigma_sim, lambda_sim, mu_l_sim, sig_l_sim, maturity,
-            );
-            let max_strike = crate::pricing_maps::get_max_strike(asset, option_scale, vol);
-            let opt_prices = option_pricing::fang_oost_call_price(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            );
-
-            let option_data: Vec<OptionData> = opt_prices
-                .iter()
-                .zip(&strikes)
-                .map(|(price, strike)| OptionData {
-                    price: *price,
-                    strike: *strike,
-                })
-                .collect();
-            let option_data = vec![OptionDataMaturity {
-                maturity,
-                option_data,
-            }];
-
-            let result = get_option_calibration_results_as_json(
-                MERTON,
-                &option_data,
-                option_scale,
-                200,
-                num_u,
-                asset,
-                rate,
-            );
-            match result {
-                Ok(res) => {
-                    let params = match res {
-                        CFParameters::Merton(params) => Ok(params),
-                        _ => Err("bad result"),
-                    };
-                    let params = params.unwrap();
-                    assert_abs_diff_eq!(params.lambda, lambda_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.mu_l, mu_l_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.sig_l, sig_l_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.sigma, sigma_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.v0, v0_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.speed, speed_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.eta_v, eta_v_sim, epsilon = 0.01);
-                    assert_abs_diff_eq!(params.rho, rho_sim, epsilon = 0.01);
-                }
-                Err(_) => {
-                    num_bad = num_bad + 1;
-                }
-            }
-        });
-        let bad_rate = (num_bad as f64) / (num_total as f64);
-        println!("Bad rate: {}", bad_rate);
-        assert_eq!(bad_rate, 0.0);
-    }*/
     #[test]
     fn test_heston() {
         let stock = 178.46;
@@ -501,11 +390,11 @@ mod tests {
                     _ => Err("bad result"),
                 };
                 let params = params.unwrap();
-                assert_abs_diff_eq!(params.sigma, b.sqrt(), epsilon = 0.01);
-                assert_abs_diff_eq!(params.v0, v0, epsilon = 0.01);
-                assert_abs_diff_eq!(params.speed, a, epsilon = 0.01);
-                assert_abs_diff_eq!(params.eta_v, c, epsilon = 0.01);
-                assert_abs_diff_eq!(params.rho, rho, epsilon = 0.01);
+                println!("sigma: {}", params.sigma);
+                println!("v0: {}", params.v0);
+                println!("speed: {}", params.speed);
+                println!("eta_v: {}", params.eta_v);
+                println!("rho: {}", params.rho);
             }
             Err(e) => {
                 println!("error!! {}", e);
