@@ -11,7 +11,7 @@ autobins = false
 edition = "2018"
 
 [dependencies]
-fang_oost_option = "0.28"
+fang_oost_option = "0.31.0"
 fang_oost = "0.14.0"
 serde = "^1"
 serde_json = "^1"
@@ -24,14 +24,18 @@ num-complex = "0.2"
 rocket = "0.4.5"
 sha2 = "0.9.1"
 hex-literal = "0.3.1"
-
+finitediff = "0.1"
+rand = "0.5"
+cuckoo = "0.8"
+liblbfgs = "0.0.15"
+anyhow = "1.0"
 [dependencies.rocket_contrib]
 version = "0.4.5"
 default-features = false
 features = ["json"]
 
 [dev-dependencies]
-rand = "0.5"
+
 approx = "0.2.0"
 criterion = "0.2"
 
@@ -50,6 +54,10 @@ path = "src/bin/option_price_auth.rs"
 name = "utils"
 path = "src/lib/lib.rs"
 
+
 [[bench]]
 name = "option_price_bench_faas"
 harness = false
+
+[features]
+VERBOSE_FLAG_ALL = ["cuckoo/VERBOSE_FLAG_ALL"]

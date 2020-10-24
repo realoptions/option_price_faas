@@ -2,5 +2,7 @@
 #[macro_use]
 extern crate rocket_contrib;
 pub mod auth;
+pub mod calibration_maps;
+pub mod constants;
 pub mod constraints;
-pub mod maps;
+pub mod pricing_maps;

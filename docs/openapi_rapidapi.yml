@@ -28,7 +28,7 @@ paths:
         at every strike price for an asset that follows an extended CGMY process
       responses:
         '200':
-          description: Option prices and sensitivites
+          description: Option prices and sensitivities
           schema:
             type: array
             items:
@@ -179,7 +179,7 @@ paths:
         at every strike price for an asset that follows a Heston process
       responses:
         '200':
-          description: Option prices and sensitivites
+          description: Option prices and sensitivities
           schema:
             type: array
             items:
@@ -318,7 +318,7 @@ paths:
         at every strike price for an asset that follows an extended Merton process
       responses:
         '200':
-          description: Option prices and sensitivites
+          description: Option prices and sensitivities
           schema:
             type: array
             items:
@@ -2391,3 +2391,321 @@ paths:
                 type: string
       parameters: []
 
+  "/cgmy/calibrator/call":
+    post:
+      operationId: calibrateCGMYOptions
+      summary: Calibrator for computing parameters of CGMY process.
+      description: Calibrates option prices for an asset that follows a CGMY process with Brownian Motion but no time change.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
+      responses:
+        '200':
+          description: CGMY parameters
+          schema:
+            type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                c:
+                  type: number
+                  example: 0.3
+                g:
+                  type: number
+                  example: 5
+                m:
+                  type: number
+                  example: 5
+                y:
+                  type: number
+                  example: 1.2
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      - required: true
+        name: body
+        in: body
+        schema:
+          type:object
+          properties:
+            rate: number
+            num_u: number
+            asset: number
+            option_data:
+              type: array
+              items:
+                type: object
+                properties:
+                  maturity:
+                    type: number
+                  option_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        strike: number
+                        price: number
+                      required:
+                        - strike
+                        - price
+                required:
+                  - maturity
+                  - option_data
+                additionalProperties: false
+          required:
+            - rate
+            - num_u
+            - asset
+            - option_data
+          additionalProperties: false
+        examples:
+          application/json:
+            rate: 0.01
+            asset: 179.0
+            num_u: 8
+            option_data: 
+              maturity: 1.0
+              option_data:
+                - price: 83.64241902939904
+                  strike: 95
+                - price: 78.70749915336623
+                  strike: 100
+                - price: 49.67870801443189
+                  strike: 130
+                - price: 31.507275556416033
+                  strike: 150
+                - price: 23.16931042274794
+                  strike: 160
+                - price: 19.29584502675351
+                  strike: 165
+                - price: 15.68163758750211
+                  strike: 170
+                - price: 12.385184069893171
+                  strike: 175
+                - price: 7.00231860293033
+                  strike: 185
+                - price: 5.0169630193886405
+                  strike: 190
+                - price: 3.509875933106713
+                  strike: 195
+  "/merton/calibrator/call":
+    post:
+      operationId: calibrateMertonOptions
+      summary: Calibrator for computing parameters of Merton process.
+      description: Calibrates option prices for an asset that follows an extended Merton process with Brownian Motion but no time change.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
+      responses:
+        '200':
+          description: Merton parameters
+          schema:
+            type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                lambda:
+                  type: number
+                  example: 0.3
+                mu_l:
+                  type: number
+                  example: 0.3
+                sig_l:
+                  type: number
+                  example: 0.3
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      - required: true
+        name: body
+        in: body
+        schema:
+          type:object
+          properties:
+            rate: number
+            num_u: number
+            asset: number
+            option_data:
+              type: array
+              items:
+                type: object
+                properties:
+                  maturity:
+                    type: number
+                  option_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        strike: number
+                        price: number
+                      required:
+                        - strike
+                        - price
+                required:
+                  - maturity
+                  - option_data
+                additionalProperties: false
+          required:
+            - rate
+            - num_u
+            - asset
+            - option_data
+          additionalProperties: false
+        examples:
+          application/json:
+            rate: 0.01
+            asset: 179.0
+            num_u: 8
+            option_data: 
+              maturity: 1.0
+              option_data:
+                - price: 83.64241902939904
+                  strike: 95
+                - price: 78.70749915336623
+                  strike: 100
+                - price: 49.67870801443189
+                  strike: 130
+                - price: 31.507275556416033
+                  strike: 150
+                - price: 23.16931042274794
+                  strike: 160
+                - price: 19.29584502675351
+                  strike: 165
+                - price: 15.68163758750211
+                  strike: 170
+                - price: 12.385184069893171
+                  strike: 175
+                - price: 7.00231860293033
+                  strike: 185
+                - price: 5.0169630193886405
+                  strike: 190
+                - price: 3.509875933106713
+                  strike: 195
+  "/heston/calibrator/call":
+    post:
+      operationId: calibrateHestonOptions
+      summary: Calibrator for computing parameters of Heston process.
+      description: Calibrates option prices for an asset that follows an extended Heston process.  Not guaranteed to converge as it uses a meta-heuristic algorithm combined with an L-BGFS local optimizer.
+      responses:
+        '200':
+          description: Heston parameters
+          schema:
+            type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      - required: true
+        name: body
+        in: body
+        schema:
+          type:object
+          properties:
+            rate: number
+            num_u: number
+            asset: number
+            option_data:
+              type: array
+              items:
+                type: object
+                properties:
+                  maturity:
+                    type: number
+                  option_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        strike: number
+                        price: number
+                      required:
+                        - strike
+                        - price
+                required:
+                  - maturity
+                  - option_data
+                additionalProperties: false
+          required:
+            - rate
+            - num_u
+            - asset
+            - option_data
+          additionalProperties: false
+        examples:
+          application/json:
+            rate: 0.01
+            asset: 179.0
+            num_u: 8
+            option_data: 
+              maturity: 1.0
+              option_data:
+                - price: 83.64241902939904
+                  strike: 95
+                - price: 78.70749915336623
+                  strike: 100
+                - price: 49.67870801443189
+                  strike: 130
+                - price: 31.507275556416033
+                  strike: 150
+                - price: 23.16931042274794
+                  strike: 160
+                - price: 19.29584502675351
+                  strike: 165
+                - price: 15.68163758750211
+                  strike: 170
+                - price: 12.385184069893171
+                  strike: 175
+                - price: 7.00231860293033
+                  strike: 185
+                - price: 5.0169630193886405
+                  strike: 190
+                - price: 3.509875933106713
+                  strike: 195

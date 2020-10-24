@@ -1,10 +1,9 @@
+use fang_oost_option::option_calibration::OptionDataMaturity;
 use rocket::response::Responder;
 use rocket_contrib::json::{JsonError, JsonValue};
 use serde_derive::{Deserialize, Serialize};
-use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt;
-
 pub enum ErrorType {
     OutOfBounds(String),
     NoExist(String),
@@ -12,6 +11,7 @@ pub enum ErrorType {
     NoConvergence(),
     ValueAtRiskError(String),
     JsonError(String),
+    OptimizationError(String),
 }
 #[derive(Debug, PartialEq, Responder, Serialize)]
 #[response(status = 400, content_type = "json")]
@@ -33,6 +33,7 @@ impl ParameterError {
                 ErrorType::NoConvergence() => format!("Root does not exist for implied volatility"),
                 ErrorType::ValueAtRiskError(message) => format!("{}", message),
                 ErrorType::JsonError(message) => format!("{}", message),
+                ErrorType::OptimizationError(message)=>format!("{}", message)
             }}),
         }
     }
@@ -43,6 +44,23 @@ impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
         ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
     }
 }
+impl From<cuckoo::IndexError> for ParameterError {
+    fn from(error: cuckoo::IndexError) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
+    }
+}
+
+impl From<anyhow::Error> for ParameterError {
+    fn from(error: anyhow::Error) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
+    }
+}
+/*
+impl From<argmin::core::Error> for ParameterError {
+    fn from(error: argmin::core::Error) -> ParameterError {
+        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
+    }
+}*/
 impl From<JsonError<'_>> for ParameterError {
     fn from(error: JsonError) -> ParameterError {
         let msg = match error {
@@ -65,11 +83,11 @@ impl Error for ParameterError {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ConstraintsSchema {
+pub struct ConstraintsSchema<'a> {
     pub lower: f64,
     pub upper: f64,
-    pub types: String,
-    pub description: String,
+    pub types: &'a str,
+    pub description: &'a str,
 }
 #[derive(Serialize, Deserialize)]
 pub struct CGMYParameters {
@@ -103,6 +121,55 @@ pub struct HestonParameters {
     pub rho: f64,
 }
 
+#[derive(Deserialize)]
+pub struct CalibrationParameters {
+    pub option_data: Vec<OptionDataMaturity>,
+    pub asset: f64,
+    pub num_u: usize,
+    pub rate: f64,
+}
+
+impl CGMYParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.c, "c"),
+            (self.g, "g"),
+            (self.m, "m"),
+            (self.y, "y"),
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
+impl HestonParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
+impl MertonParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.lambda, "lambda"),
+            (self.mu_l, "mu_l"),
+            (self.sig_l, "sig_l"),
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+            (self.rho, "rho"),
+        ]
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CFParameters {
@@ -116,245 +183,265 @@ pub struct OptionParameters {
     pub maturity: f64,
     pub rate: f64,
     pub asset: Option<f64>,
-    pub strikes: Option<VecDeque<f64>>,
+    pub strikes: Option<Vec<f64>>,
     pub quantile: Option<f64>,
     pub num_u: usize, //raised to the power of two.  if this is 8, then there will be 2^8=256 discrete "u"
     pub cf_parameters: CFParameters,
 }
 
-pub fn extend_strikes(mut strikes: VecDeque<f64>, asset: f64, x_max: f64) -> Vec<f64> {
-    strikes.push_back((-x_max).exp() * asset);
-    strikes.push_front(x_max.exp() * asset);
-    Vec::from(strikes)
+#[derive(Serialize)]
+pub struct ParameterConstraints<'a> {
+    pub rate: &'a ConstraintsSchema<'a>,
+    pub asset: &'a ConstraintsSchema<'a>,
+    pub maturity: &'a ConstraintsSchema<'a>,
+    pub num_u: &'a ConstraintsSchema<'a>,
+    pub quantile: &'a ConstraintsSchema<'a>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ParameterConstraints {
-    pub rate: ConstraintsSchema,
-    pub asset: ConstraintsSchema,
-    pub maturity: ConstraintsSchema,
-    pub num_u: ConstraintsSchema,
-    pub quantile: ConstraintsSchema,
+#[derive(Serialize)]
+pub struct MertonConstraints<'a> {
+    pub lambda: &'a ConstraintsSchema<'a>,
+    pub mu_l: &'a ConstraintsSchema<'a>,
+    pub sig_l: &'a ConstraintsSchema<'a>,
+    pub sigma: &'a ConstraintsSchema<'a>,
+    pub v0: &'a ConstraintsSchema<'a>,
+    pub speed: &'a ConstraintsSchema<'a>,
+    pub eta_v: &'a ConstraintsSchema<'a>,
+    pub rho: &'a ConstraintsSchema<'a>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct MertonConstraints {
-    pub lambda: ConstraintsSchema,
-    pub mu_l: ConstraintsSchema,
-    pub sig_l: ConstraintsSchema,
-    pub sigma: ConstraintsSchema,
-    pub v0: ConstraintsSchema,
-    pub speed: ConstraintsSchema,
-    pub eta_v: ConstraintsSchema,
-    pub rho: ConstraintsSchema,
+#[derive(Serialize)]
+pub struct CGMYConstraints<'a> {
+    pub c: &'a ConstraintsSchema<'a>,
+    pub g: &'a ConstraintsSchema<'a>,
+    pub m: &'a ConstraintsSchema<'a>,
+    pub y: &'a ConstraintsSchema<'a>,
+    pub sigma: &'a ConstraintsSchema<'a>,
+    pub v0: &'a ConstraintsSchema<'a>,
+    pub speed: &'a ConstraintsSchema<'a>,
+    pub eta_v: &'a ConstraintsSchema<'a>,
+    pub rho: &'a ConstraintsSchema<'a>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct CGMYConstraints {
-    pub c: ConstraintsSchema,
-    pub g: ConstraintsSchema,
-    pub m: ConstraintsSchema,
-    pub y: ConstraintsSchema,
-    pub sigma: ConstraintsSchema,
-    pub v0: ConstraintsSchema,
-    pub speed: ConstraintsSchema,
-    pub eta_v: ConstraintsSchema,
-    pub rho: ConstraintsSchema,
+#[derive(Serialize)]
+pub struct HestonConstraints<'a> {
+    pub sigma: &'a ConstraintsSchema<'a>,
+    pub v0: &'a ConstraintsSchema<'a>,
+    pub speed: &'a ConstraintsSchema<'a>,
+    pub eta_v: &'a ConstraintsSchema<'a>,
+    pub rho: &'a ConstraintsSchema<'a>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct HestonConstraints {
-    pub sigma: ConstraintsSchema,
-    pub v0: ConstraintsSchema,
-    pub speed: ConstraintsSchema,
-    pub eta_v: ConstraintsSchema,
-    pub rho: ConstraintsSchema,
+impl CGMYConstraints<'_> {
+    pub fn to_vector(&self) -> Vec<&ConstraintsSchema> {
+        vec![
+            &self.c,
+            &self.g,
+            &self.m,
+            &self.y,
+            &self.sigma,
+            &self.v0,
+            &self.speed,
+            &self.eta_v,
+            &self.rho,
+        ]
+    }
 }
-
-pub fn get_constraints() -> ParameterConstraints {
-    ParameterConstraints {
-        rate: ConstraintsSchema {
-            lower: 0.0,
-            upper: 0.4,
-            types: "float".to_string(),
-            description: "Annualized risk-free interest rate".to_string(),
-        },
-        asset: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1000000.0,
-            types: "float".to_string(),
-            description: "Underlying asset".to_string(),
-        },
-        maturity: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1000000.0,
-            types: "float".to_string(),
-            description: "Time in years till option expiration".to_string(),
-        },
-        num_u: ConstraintsSchema {
-            lower: 5.0,
-            upper: 10.0,
-            types: "int".to_string(),
-            description: "Exponent for the precision of the numeric inversion.  For example, 8 represents 2^8=256.".to_string()
-        },
-        quantile: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Quantile of (risk-neutral) distribution of the underlying asset.  For example, 0.05 would map to a 95% VaR.".to_string()
-        },
+impl HestonConstraints<'_> {
+    pub fn to_vector(&self) -> Vec<&ConstraintsSchema> {
+        vec![&self.sigma, &self.v0, &self.speed, &self.eta_v, &self.rho]
+    }
+}
+impl MertonConstraints<'_> {
+    pub fn to_vector(&self) -> Vec<&ConstraintsSchema> {
+        vec![
+            &self.lambda,
+            &self.mu_l,
+            &self.sig_l,
+            &self.sigma,
+            &self.v0,
+            &self.speed,
+            &self.eta_v,
+            &self.rho,
+        ]
     }
 }
 
-pub fn get_merton_constraints() -> MertonConstraints {
-    MertonConstraints {
-        lambda: ConstraintsSchema {
-            lower: 0.0,
-            upper: 2.0,
-            types: "float".to_string(),
-            description: "Annualized frequency of jumps for the asset process".to_string(),
-        },
-        mu_l: ConstraintsSchema {
-            lower: -1.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Mean jump size".to_string(),
-        },
-        sig_l: ConstraintsSchema {
-            lower: 0.0,
-            upper: 2.0,
-            types: "float".to_string(),
-            description: "Volatility of jump size".to_string(),
-        },
-        sigma: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Volatility of diffusion component of asset process".to_string(),
-        },
-        v0: ConstraintsSchema {
-            lower: 0.2,
-            upper: 1.8,
-            types: "float".to_string(),
-            description: "Initial value of the time-change diffusion".to_string(),
-        },
-        speed: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Rate at which time-change diffusion reverts to mean".to_string(),
-        },
-        eta_v: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Volatility of time-change diffusion".to_string(),
-        },
-        rho: ConstraintsSchema {
-            lower: -1.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Correlation between asset and time-change diffusions".to_string(),
-        },
-    }
-}
-pub fn get_cgmy_constraints() -> CGMYConstraints {
-    CGMYConstraints {
-        c: ConstraintsSchema {
-            lower: 0.0,
-            upper: 2.0,
-            types: "float".to_string(),
-            description: "Parameter C from CGMY, controls overall level of jump frequency"
-                .to_string(),
-        },
-        g: ConstraintsSchema {
-            lower: 0.0,
-            upper: 20.0,
-            types: "float".to_string(),
-            description:
-                "Parameter G from CGMY, controls rate of decay for left side of asset distribution"
-                    .to_string(),
-        },
-        m: ConstraintsSchema {
-            lower: 0.0,
-            upper: 20.0,
-            types: "float".to_string(),
-            description:
-                "Parameter M from CGMY, controls rate of decay for right side of asset distribution"
-                    .to_string(),
-        },
-        y: ConstraintsSchema {
-            lower: -1.0,
-            upper: 2.0,
-            types: "float".to_string(),
-            description: "Parameter Y from CGMY, characterizes fine structure of jumps".to_string(),
-        },
-        sigma: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Volatility of diffusion component of asset process".to_string(),
-        },
-        v0: ConstraintsSchema {
-            lower: 0.2,
-            upper: 1.8,
-            types: "float".to_string(),
-            description: "Initial value of the time-change diffusion".to_string(),
-        },
-        speed: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Rate at which time-change diffusion reverts to mean".to_string(),
-        },
-        eta_v: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Volatility of time-change diffusion".to_string(),
-        },
-        rho: ConstraintsSchema {
-            lower: -1.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Correlation between asset and time-change diffusions".to_string(),
-        },
-    }
-}
-pub fn get_heston_constraints() -> HestonConstraints {
-    HestonConstraints {
-        sigma: ConstraintsSchema {
-            lower: 0.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Square root of mean of variance process".to_string(),
-        },
-        v0: ConstraintsSchema {
-            lower: 0.001,
-            upper: 1.5,
-            types: "float".to_string(),
-            description: "Square root of initial value of the instantaneous variance".to_string(),
-        },
-        speed: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Rate at which variance reverts to mean".to_string(),
-        },
-        eta_v: ConstraintsSchema {
-            lower: 0.0,
-            upper: 3.0,
-            types: "float".to_string(),
-            description: "Vol of vol: volatility of instantaneous variance".to_string(),
-        },
-        rho: ConstraintsSchema {
-            lower: -1.0,
-            upper: 1.0,
-            types: "float".to_string(),
-            description: "Correlation between asset and variance diffusions".to_string(),
-        },
-    }
-}
+pub const PARAMETER_CONSTRAINTS:ParameterConstraints=ParameterConstraints {
+    rate: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 0.4,
+        types: "float",
+        description: "Annualized risk-free interest rate",
+    },
+    asset: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1000000.0,
+        types: "float",
+        description: "Underlying asset",
+    },
+    maturity: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1000000.0,
+        types: "float",
+        description: "Time in years till option expiration",
+    },
+    num_u: &ConstraintsSchema {
+        lower: 5.0,
+        upper: 10.0,
+        types: "int",
+        description: "Exponent for the precision of the numeric inversion.  For example, 8 represents 2^8=256."
+    },
+    quantile: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1.0,
+        types: "float",
+        description: "Quantile of (risk-neutral) distribution of the underlying asset.  For example, 0.05 would map to a 95% VaR."
+    },
+};
+
+pub const MERTON_CONSTRAINTS: MertonConstraints = MertonConstraints {
+    lambda: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 2.0,
+        types: "float",
+        description: "Annualized frequency of jumps for the asset process",
+    },
+    mu_l: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 1.0,
+        types: "float",
+        description: "Mean jump size",
+    },
+    sig_l: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 2.0,
+        types: "float",
+        description: "Volatility of jump size",
+    },
+    sigma: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1.0,
+        types: "float",
+        description: "Volatility of diffusion component of asset process",
+    },
+    v0: &ConstraintsSchema {
+        lower: 0.2,
+        upper: 1.8,
+        types: "float",
+        description: "Initial value of the time-change diffusion",
+    },
+    speed: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Rate at which time-change diffusion reverts to mean",
+    },
+    eta_v: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Volatility of time-change diffusion",
+    },
+    rho: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 1.0,
+        types: "float",
+        description: "Correlation between asset and time-change diffusions",
+    },
+};
+
+pub const CGMY_CONSTRAINTS: CGMYConstraints = CGMYConstraints {
+    c: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 2.0,
+        types: "float",
+        description: "Parameter C from CGMY, controls overall level of jump frequency",
+    },
+    g: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 20.0,
+        types: "float",
+        description:
+            "Parameter G from CGMY, controls rate of decay for left side of asset distribution",
+    },
+    m: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 20.0,
+        types: "float",
+        description:
+            "Parameter M from CGMY, controls rate of decay for right side of asset distribution",
+    },
+    y: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 2.0,
+        types: "float",
+        description: "Parameter Y from CGMY, characterizes fine structure of jumps",
+    },
+    sigma: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1.0,
+        types: "float",
+        description: "Volatility of diffusion component of asset process",
+    },
+    v0: &ConstraintsSchema {
+        lower: 0.2,
+        upper: 1.8,
+        types: "float",
+        description: "Initial value of the time-change diffusion",
+    },
+    speed: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Rate at which time-change diffusion reverts to mean",
+    },
+    eta_v: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Volatility of time-change diffusion",
+    },
+    rho: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 1.0,
+        types: "float",
+        description: "Correlation between asset and time-change diffusions",
+    },
+};
+
+pub const HESTON_CONSTRAINTS: HestonConstraints = HestonConstraints {
+    sigma: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1.0,
+        types: "float",
+        description: "Square root of mean of variance process",
+    },
+    v0: &ConstraintsSchema {
+        lower: 0.001,
+        upper: 1.5,
+        types: "float",
+        description: "Square root of initial value of the instantaneous variance",
+    },
+    speed: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Rate at which variance reverts to mean",
+    },
+    eta_v: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Vol of vol: volatility of instantaneous variance",
+    },
+    rho: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 1.0,
+        types: "float",
+        description: "Correlation between asset and variance diffusions",
+    },
+};
 
 fn check_constraint<'a>(
     parameter: f64,
@@ -395,40 +482,27 @@ pub fn check_heston_parameters<'a>(
     parameters: &HestonParameters,
     constraints: &HestonConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 pub fn check_merton_parameters<'a>(
     parameters: &MertonParameters,
     constraints: &MertonConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.lambda, &constraints.lambda, "lambda")?;
-    check_constraint(parameters.mu_l, &constraints.mu_l, "mu_l")?;
-    check_constraint(parameters.sig_l, &constraints.sig_l, "sig_l")?;
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 pub fn check_cgmy_parameters<'a>(
     parameters: &CGMYParameters,
     constraints: &CGMYConstraints,
 ) -> Result<(), ParameterError> {
-    check_constraint(parameters.c, &constraints.c, "c")?;
-    check_constraint(parameters.g, &constraints.g, "g")?;
-    check_constraint(parameters.m, &constraints.m, "m")?;
-    check_constraint(parameters.y, &constraints.y, "y")?;
-    check_constraint(parameters.sigma, &constraints.sigma, "sigma")?;
-    check_constraint(parameters.v0, &constraints.v0, "v0")?;
-    check_constraint(parameters.speed, &constraints.speed, "speed")?;
-    check_constraint(parameters.eta_v, &constraints.eta_v, "eta_v")?;
-    check_constraint(parameters.rho, &constraints.rho, "rho")?;
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
     Ok(())
 }
 
@@ -460,8 +534,8 @@ mod tests {
         let constraint = ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
-            types: "float".to_string(),
-            description: "hello".to_string(),
+            types: "float",
+            description: "hello",
         };
         let parameter = Some(0.5);
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -472,8 +546,8 @@ mod tests {
         let constraint = ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
-            types: "float".to_string(),
-            description: "hello".to_string(),
+            types: "float",
+            description: "hello",
         };
         let parameter = None;
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -484,8 +558,8 @@ mod tests {
         let constraint = ConstraintsSchema {
             lower: 0.0,
             upper: 1.0,
-            types: "float".to_string(),
-            description: "hello".to_string(),
+            types: "float",
+            description: "hello",
         };
         let parameter = Some(5.0);
         let result = check_constraint_option(&parameter, &constraint, "hello");
@@ -512,7 +586,7 @@ mod tests {
                 rho: -0.2,
             }),
         };
-        let result = check_parameters(&parameters, &get_constraints());
+        let result = check_parameters(&parameters, &PARAMETER_CONSTRAINTS);
         assert!(result.is_ok());
     }
     #[test]
@@ -532,7 +606,7 @@ mod tests {
                 rho: -0.2,
             }),
         };
-        let result = check_parameters(&parameters, &get_constraints());
+        let result = check_parameters(&parameters, &PARAMETER_CONSTRAINTS);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
@@ -548,7 +622,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_heston_parameters(&parameters, &get_heston_constraints());
+        let result = check_heston_parameters(&parameters, &HESTON_CONSTRAINTS);
         assert!(result.is_ok());
     }
     #[test]
@@ -560,7 +634,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_heston_parameters(&parameters, &get_heston_constraints());
+        let result = check_heston_parameters(&parameters, &HESTON_CONSTRAINTS);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
@@ -579,7 +653,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_merton_parameters(&parameters, &get_merton_constraints());
+        let result = check_merton_parameters(&parameters, &MERTON_CONSTRAINTS);
         assert!(result.is_ok());
     }
     #[test]
@@ -594,7 +668,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_merton_parameters(&parameters, &get_merton_constraints());
+        let result = check_merton_parameters(&parameters, &MERTON_CONSTRAINTS);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
@@ -614,7 +688,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_cgmy_parameters(&parameters, &get_cgmy_constraints());
+        let result = check_cgmy_parameters(&parameters, &CGMY_CONSTRAINTS);
         assert!(result.is_ok());
     }
     #[test]
@@ -630,7 +704,7 @@ mod tests {
             eta_v: 0.3,
             rho: -0.2,
         };
-        let result = check_cgmy_parameters(&parameters, &get_cgmy_constraints());
+        let result = check_cgmy_parameters(&parameters, &CGMY_CONSTRAINTS);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
