@@ -4,7 +4,7 @@ use crate::constraints::{
     CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
 use argmin::prelude::*;
-use argmin::solver::linesearch::MoreThuenteLineSearch;
+use argmin::solver::linesearch::{HagerZhangLineSearch, MoreThuenteLineSearch};
 use argmin::solver::quasinewton::LBFGS;
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use finitediff::FiniteDiff;
@@ -131,30 +131,6 @@ fn convert_constraints_to_cuckoo_ul(
         lower: constraint.lower,
     }
 }
-fn get_obj_fn_mse<'a, 'b: 'a, T, S>(
-    option_datum: &'b [OptionDataMaturity],
-    num_u: usize,
-    asset: f64,
-    rate: f64,
-    get_max_strike: S,
-    cf_fn: T,
-) -> impl Fn(&[f64]) -> f64 + 'a
-where
-    T: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + 'b + Sync,
-    S: Fn(&[f64], f64) -> f64 + 'b + Sync,
-{
-    move |params| {
-        fang_oost_option::option_calibration::obj_fn_real(
-            num_u,
-            asset,
-            &option_datum,
-            rate,
-            &params,
-            &get_max_strike,
-            &cf_fn,
-        )
-    }
-}
 
 const NEST_SIZE: usize = 25;
 const NUM_SIMS: usize = 1500; //this is super large, will likely never get there
@@ -174,18 +150,26 @@ where
     S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
     T: Fn(&[f64], f64) -> f64 + Sync,
 {
-    let obj_fn = get_obj_fn_mse(&option_data, num_u, asset, rate, &get_max_strike, &cf_inst);
+    let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
+        num_u,
+        asset,
+        &option_data,
+        rate,
+        &get_max_strike,
+        &cf_inst,
+    );
     let (optimal_parameters, _) = cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
         cuckoo::get_rng_system_seed()
     })?;
 
     let obj_fn = ObjFn { obj_fn: &obj_fn };
     let linesearch = MoreThuenteLineSearch::new();
+    //let linesearch = HagerZhangLineSearch::new().epsilon(0.0)?;
     // m between 3 and 20 yield "good results" according to
     // http://www.apmath.spbu.ru/cnsa/pdf/monograf/Numerical_Optimization2006.pdf
-    let solver = LBFGS::new(linesearch, 10).with_tol_cost(f64::EPSILON);
+    let solver = LBFGS::new(linesearch, 7).with_tol_cost(f64::EPSILON);
     let res = Executor::new(obj_fn, solver, optimal_parameters)
-        //.add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
+        .add_observer(ArgminSlogLogger::term(), ObserverMode::Always)
         .max_iters(max_iter)
         .run()?;
     Ok(res.state.best_param)
@@ -223,19 +207,17 @@ pub fn get_option_calibration_results_as_json(
                 &cf_inst,
             )?;
             match &results[..] {
-                [c, g, m, y, sigma/*, v0, speed, eta_v, rho*/] => {
-                    Ok(CFParameters::CGMY(CGMYParameters {
-                        c: *c,
-                        g: *g,
-                        m: *m,
-                        y: *y,
-                        sigma: *sigma,
-                        v0: 1.0,
-                        speed: 0.0,
-                        eta_v: 0.0,
-                        rho: 0.0,
-                    }))
-                }
+                [c, g, m, y, sigma] => Ok(CFParameters::CGMY(CGMYParameters {
+                    c: *c,
+                    g: *g,
+                    m: *m,
+                    y: *y,
+                    sigma: *sigma,
+                    v0: 1.0,
+                    speed: 0.0,
+                    eta_v: 0.0,
+                    rho: 0.0,
+                })),
                 _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
                     "Calibration".to_string(),
                 ))),
@@ -263,18 +245,16 @@ pub fn get_option_calibration_results_as_json(
                 &cf_inst,
             )?;
             match &results[..] {
-                [lambda, mu_l, sig_l, sigma/*, v0, speed, eta_v, rho*/] => {
-                    Ok(CFParameters::Merton(MertonParameters {
-                        lambda: *lambda,
-                        mu_l: *mu_l,
-                        sig_l: *sig_l,
-                        sigma: *sigma,
-                        v0: 1.0,
-                        speed: 0.0,
-                        eta_v: 0.0,
-                        rho: 0.0,
-                    }))
-                }
+                [lambda, mu_l, sig_l, sigma] => Ok(CFParameters::Merton(MertonParameters {
+                    lambda: *lambda,
+                    mu_l: *mu_l,
+                    sig_l: *sig_l,
+                    sigma: *sigma,
+                    v0: 1.0,
+                    speed: 0.0,
+                    eta_v: 0.0,
+                    rho: 0.0,
+                })),
                 _ => Err(ParameterError::new(&ErrorType::OutOfBounds(
                     "Calibration".to_string(),
                 ))),
@@ -527,7 +507,10 @@ mod tests {
                 assert_abs_diff_eq!(params.eta_v, c, epsilon = 0.01);
                 assert_abs_diff_eq!(params.rho, rho, epsilon = 0.01);
             }
-            Err(e) => panic!(e),
+            Err(e) => {
+                println!("error!! {}", e);
+                panic!(e);
+            }
         }
     }
     #[test]
