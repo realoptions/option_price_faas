@@ -142,8 +142,19 @@ where
         })?;
 
     let evaluate = |x: &[f64], gx: &mut [f64]| {
-        for (index, value) in x.to_vec().central_diff(&|x| obj_fn(&x)).iter().enumerate() {
-            gx[index] = *value;
+        for (((index, gradient), parameter), upper_lower) in x
+            .to_vec()
+            .central_diff(&|x| obj_fn(&x))
+            .iter()
+            .enumerate()
+            .zip(x)
+            .zip(ul)
+        {
+            if parameter >= &upper_lower.upper || parameter <= &upper_lower.lower {
+                gx[index] = -1.0; //get out of here!!
+            } else {
+                gx[index] = *gradient;
+            }
         }
         Ok(obj_fn(x))
     };
@@ -375,6 +386,12 @@ mod tests {
             _ => Err("bad result"),
         };
         let params = params.unwrap();
+        assert!(params.v0 > 0.0);
+        assert!(params.sigma > 0.0);
+        assert!(params.speed > 0.0);
+        assert!(params.eta_v > 0.0);
+        assert!(params.rho > -1.0);
+        assert!(params.rho < 1.0);
         println!("sigma: {}", params.sigma);
         println!("v0: {}", params.v0);
         println!("speed: {}", params.speed);
@@ -455,6 +472,9 @@ mod tests {
             _ => Err("bad result"),
         };
         let params = params.unwrap();
+        assert!(params.lambda > 0.0);
+        assert!(params.sig_l > 0.0);
+        assert!(params.sigma > 0.0);
         println!("lambda: {}", params.lambda);
         println!("mu_l: {}", params.mu_l);
         println!("sig_l: {}", params.sig_l);
@@ -538,6 +558,10 @@ mod tests {
             _ => Err("bad result"),
         };
         let params = params.unwrap();
+        assert!(params.c > 0.0);
+        assert!(params.g > 0.0);
+        assert!(params.m > 0.0);
+        assert!(params.sigma > 0.0);
         println!("c: {}", params.c);
         println!("g: {}", params.g);
         println!("m: {}", params.m);
