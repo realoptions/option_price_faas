@@ -8,6 +8,7 @@ const port = '8080'
 const version = 'v2'
 beforeAll(() => {
     server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
+    //setTimeout(done, 1000) //wait for server to launch
 })
 afterAll(() => {
     server.kill()
