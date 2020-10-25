@@ -2527,27 +2527,25 @@ paths:
           schema:
             type: object
             properties:
-              type: object 
-              properties:
-                parameters:
-                  type: object 
-                  properties:
-                    sigma:
-                      type: number
-                    lambda:
-                      type: number
-                    mu_l:
-                      type: number
-                    sig_l:
-                      type: number
-                    speed:
-                      type: number
-                    v0:
-                      type: number
-                    eta_v:
-                      type: number
-                    rho:
-                      type: number
+              parameters:
+                type: object 
+                properties:
+                  sigma:
+                    type: number
+                  lambda:
+                    type: number
+                  mu_l:
+                    type: number
+                  sig_l:
+                    type: number
+                  speed:
+                    type: number
+                  v0:
+                    type: number
+                  eta_v:
+                    type: number
+                  rho:
+                    type: number
               final_cost_value:
                 type: number
           examples:

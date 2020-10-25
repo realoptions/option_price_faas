@@ -167,11 +167,6 @@ where
             &mut optimal_parameters, // input variables
             evaluate,                // define how to evaluate function
             |prgr| {
-                // define progress monitor
-                /*println!(
-                    "iter: {:}, value: {:}, line step: {:}",
-                    prgr.niter, prgr.fx, prgr.step
-                );*/
                 fn_val = prgr.fx;
                 false
             },
