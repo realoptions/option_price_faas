@@ -6,9 +6,9 @@ const { spawn } = require('child_process')
 let server
 const port = '8090'
 const version = 'v2'
-beforeAll((/*done*/) => {
+beforeAll((done) => {
     server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
-    //setTimeout(done, 1000) //wait for server to launch
+    setTimeout(done, 1000) //wait for server to launch
 })
 
 afterAll(() => {
