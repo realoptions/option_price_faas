@@ -4,10 +4,11 @@ const fetch = require('node-fetch')
 const { spawn } = require('child_process')
 jest.setTimeout(timeout)
 let server
-const port = '9000'
+const port = '9010'
 const version = 'v2'
-beforeAll(() => {
+beforeAll((done) => {
     server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
+    setTimeout(done, 1000) //wait for server to launch
 })
 
 afterAll(() => {

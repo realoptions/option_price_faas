@@ -6,8 +6,9 @@ const { spawn } = require('child_process')
 let server
 const port = '8090'
 const version = 'v2'
-beforeAll(() => {
+beforeAll((done) => {
     server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
+    setTimeout(done, 1000) //wait for server to launch
 })
 
 afterAll(() => {
@@ -20,7 +21,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/heston/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.eta_v).toBeDefined()
+            return expect(response.parameters.eta_v).toBeDefined()
         })
 
     })
@@ -29,7 +30,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/cgmy/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.c).toBeDefined()
+            return expect(response.parameters.c).toBeDefined()
         })
 
     })
@@ -38,7 +39,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/merton/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.lambda).toBeDefined()
+            return expect(response.parameters.lambda).toBeDefined()
         })
 
     })

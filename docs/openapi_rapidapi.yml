@@ -2402,35 +2402,42 @@ paths:
           schema:
             type: object
             properties:
-              sigma:
-                type: number
-              c:
-                type: number
-              g:
-                type: number
-              m:
-                type: number
-              y:
-                type: number
-              speed:
-                type: number
-              v0:
-                type: number
-              eta_v:
-                type: number
-              rho:
+              parameters:
+                type: object
+                properties:
+                  sigma:
+                    type: number
+                  c:
+                    type: number
+                  g:
+                    type: number
+                  m:
+                    type: number
+                  y:
+                    type: number
+                  speed:
+                    type: number
+                  v0:
+                    type: number
+                  eta_v:
+                    type: number
+                  rho:
+                    type: number
+              final_cost_value:
                 type: number
           examples:
             application/json:
-              sigma: 0.4
-              c: 0.4
-              g: 5.0
-              m: 5.0
-              y: 1.2
-              speed: 0.2
-              v0: 0.9
-              eta_v: 0.2
-              rho: -0.5
+              parameters:
+                sigma: 0.4
+                c: 0.4
+                g: 5.0
+                m: 5.0
+                y: 1.2
+                speed: 0.2
+                v0: 0.9
+                eta_v: 0.2
+                rho: -0.5
+              final_cost_value: 0.001
         '400':
           description: Error for incorrect request
           schema:
@@ -2520,32 +2527,41 @@ paths:
           schema:
             type: object
             properties:
-              sigma:
-                type: number
-              lambda:
-                type: number
-              mu_l:
-                type: number
-              sig_l:
-                type: number
-              speed:
-                type: number
-              v0:
-                type: number
-              eta_v:
-                type: number
-              rho:
+              type: object 
+              properties:
+                parameters:
+                  type: object 
+                  properties:
+                    sigma:
+                      type: number
+                    lambda:
+                      type: number
+                    mu_l:
+                      type: number
+                    sig_l:
+                      type: number
+                    speed:
+                      type: number
+                    v0:
+                      type: number
+                    eta_v:
+                      type: number
+                    rho:
+                      type: number
+              final_cost_value:
                 type: number
           examples:
             application/json:
-              sigma: 0.3
-              lambda: 0.3
-              mu_l: 0.3
-              sig_l: 0.3
-              speed: 0.2
-              v0: 0.9
-              eta_v: 0.2
-              rho: -0.5
+              parameters:
+                sigma: 0.3
+                lambda: 0.3
+                mu_l: 0.3
+                sig_l: 0.3
+                speed: 0.2
+                v0: 0.9
+                eta_v: 0.2
+                rho: -0.5
+              final_cost_value: 0.0001
         '400':
           description: Error for incorrect request
           schema:
@@ -2635,23 +2651,30 @@ paths:
           schema:
             type: object
             properties:
-              sigma:
-                type: number
-              speed:
-                type: number
-              v0:
-                type: number
-              eta_v:
-                type: number
-              rho:
+              parameters:
+                type: object
+                properties:
+                  sigma:
+                    type: number
+                  speed:
+                    type: number
+                  v0:
+                    type: number
+                  eta_v:
+                    type: number
+                  rho:
+                    type: number
+              final_cost_value:
                 type: number
           examples:
             application/json:
-              sigma: 0.3
-              speed: 0.2
-              v0: 0.9
-              eta_v: 0.2
-              rho: -0.5
+              parameters:
+                sigma: 0.3
+                speed: 0.2
+                v0: 0.9
+                eta_v: 0.2
+                rho: -0.5
+              final_cost_value: 0.001
         '400':
           description: Error for incorrect request
           schema:

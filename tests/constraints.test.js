@@ -6,8 +6,9 @@ jest.setTimeout(timeout)
 let server
 const port = '8070'
 const version = 'v2'
-beforeAll(() => {
+beforeAll((done) => {
     server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
+    setTimeout(done, 1000) //wait for server to launch
 })
 
 afterAll(() => {
