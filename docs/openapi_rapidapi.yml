@@ -2404,31 +2404,33 @@ paths:
             properties:
               sigma:
                 type: number
-                example: 0.3
               c:
                 type: number
-                example: 0.3
               g:
                 type: number
-                example: 5
               m:
                 type: number
-                example: 5
               y:
                 type: number
-                example: 1.2
               speed:
                 type: number
-                example: 0.2
               v0:
                 type: number
-                example: 0.9
               eta_v:
                 type: number
-                example: 0.2
               rho:
                 type: number
-                example: -0.5
+          examples:
+            application/json:
+              sigma: 0.4
+              c: 0.4
+              g: 5.0
+              m: 5.0
+              y: 1.2
+              speed: 0.2
+              v0: 0.9
+              eta_v: 0.2
+              rho: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2443,9 +2445,12 @@ paths:
         schema:
           type: object
           properties:
-            rate: number
-            num_u: number
-            asset: number
+            rate: 
+              type: number
+            num_u: 
+              type: number
+            asset: 
+              type: number
             option_data:
               type: array
               items:
@@ -2458,8 +2463,10 @@ paths:
                     items:
                       type: object
                       properties:
-                        strike: number
-                        price: number
+                        strike:
+                          type: number
+                        price: 
+                          type: number
                       required:
                         - strike
                         - price
@@ -2473,36 +2480,35 @@ paths:
             - asset
             - option_data
           additionalProperties: false
-        examples:
-          application/json:
+          example:
             rate: 0.01
             asset: 179.0
             num_u: 8
             option_data: 
               - maturity: 1.0
                 option_data:
-                - price: 83.64241902939904
-                  strike: 95
-                - price: 78.70749915336623
-                  strike: 100
-                - price: 49.67870801443189
-                  strike: 130
-                - price: 31.507275556416033
-                  strike: 150
-                - price: 23.16931042274794
-                  strike: 160
-                - price: 19.29584502675351
-                  strike: 165
-                - price: 15.68163758750211
-                  strike: 170
-                - price: 12.385184069893171
-                  strike: 175
-                - price: 7.00231860293033
-                  strike: 185
-                - price: 5.0169630193886405
-                  strike: 190
-                - price: 3.509875933106713
-                  strike: 195
+                  - price: 83.64241902939904
+                    strike: 95
+                  - price: 78.70749915336623
+                    strike: 100
+                  - price: 49.67870801443189
+                    strike: 130
+                  - price: 31.507275556416033
+                    strike: 150
+                  - price: 23.16931042274794
+                    strike: 160
+                  - price: 19.29584502675351
+                    strike: 165
+                  - price: 15.68163758750211
+                    strike: 170
+                  - price: 12.385184069893171
+                    strike: 175
+                  - price: 7.00231860293033
+                    strike: 185
+                  - price: 5.0169630193886405
+                    strike: 190
+                  - price: 3.509875933106713
+                    strike: 195
   "/merton/calibrator/call":
     post:
       operationId: calibrateMertonOptions
@@ -2516,28 +2522,30 @@ paths:
             properties:
               sigma:
                 type: number
-                example: 0.3
               lambda:
                 type: number
-                example: 0.3
               mu_l:
                 type: number
-                example: 0.3
               sig_l:
                 type: number
-                example: 0.3
               speed:
                 type: number
-                example: 0.2
               v0:
                 type: number
-                example: 0.9
               eta_v:
                 type: number
-                example: 0.2
               rho:
                 type: number
-                example: -0.5
+          examples:
+            application/json:
+              sigma: 0.3
+              lambda: 0.3
+              mu_l: 0.3
+              sig_l: 0.3
+              speed: 0.2
+              v0: 0.9
+              eta_v: 0.2
+              rho: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2552,9 +2560,12 @@ paths:
         schema:
           type: object
           properties:
-            rate: number
-            num_u: number
-            asset: number
+            rate: 
+              type: number
+            num_u: 
+              type: number
+            asset: 
+              type: number
             option_data:
               type: array
               items:
@@ -2567,8 +2578,10 @@ paths:
                     items:
                       type: object
                       properties:
-                        strike: number
-                        price: number
+                        strike: 
+                          type: number
+                        price: 
+                          type: number
                       required:
                         - strike
                         - price
@@ -2582,36 +2595,35 @@ paths:
             - asset
             - option_data
           additionalProperties: false
-        examples:
-          application/json:
+          example:
             rate: 0.01
             asset: 179.0
             num_u: 8
             option_data: 
               - maturity: 1.0
                 option_data:
-                - price: 83.64241902939904
-                  strike: 95
-                - price: 78.70749915336623
-                  strike: 100
-                - price: 49.67870801443189
-                  strike: 130
-                - price: 31.507275556416033
-                  strike: 150
-                - price: 23.16931042274794
-                  strike: 160
-                - price: 19.29584502675351
-                  strike: 165
-                - price: 15.68163758750211
-                  strike: 170
-                - price: 12.385184069893171
-                  strike: 175
-                - price: 7.00231860293033
-                  strike: 185
-                - price: 5.0169630193886405
-                  strike: 190
-                - price: 3.509875933106713
-                  strike: 195
+                  - price: 83.64241902939904
+                    strike: 95
+                  - price: 78.70749915336623
+                    strike: 100
+                  - price: 49.67870801443189
+                    strike: 130
+                  - price: 31.507275556416033
+                    strike: 150
+                  - price: 23.16931042274794
+                    strike: 160
+                  - price: 19.29584502675351
+                    strike: 165
+                  - price: 15.68163758750211
+                    strike: 170
+                  - price: 12.385184069893171
+                    strike: 175
+                  - price: 7.00231860293033
+                    strike: 185
+                  - price: 5.0169630193886405
+                    strike: 190
+                  - price: 3.509875933106713
+                    strike: 195
   "/heston/calibrator/call":
     post:
       operationId: calibrateHestonOptions
@@ -2625,19 +2637,21 @@ paths:
             properties:
               sigma:
                 type: number
-                example: 0.3
               speed:
                 type: number
-                example: 0.2
               v0:
                 type: number
-                example: 0.9
               eta_v:
                 type: number
-                example: 0.2
               rho:
                 type: number
-                example: -0.5
+          examples:
+            application/json:
+              sigma: 0.3
+              speed: 0.2
+              v0: 0.9
+              eta_v: 0.2
+              rho: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2652,9 +2666,12 @@ paths:
         schema:
           type: object
           properties:
-            rate: number
-            num_u: number
-            asset: number
+            rate: 
+              type: number
+            num_u: 
+              type: number
+            asset: 
+              type: number
             option_data:
               type: array
               items:
@@ -2667,8 +2684,10 @@ paths:
                     items:
                       type: object
                       properties:
-                        strike: number
-                        price: number
+                        strike: 
+                          type: number
+                        price: 
+                          type: number
                       required:
                         - strike
                         - price
@@ -2682,33 +2701,32 @@ paths:
             - asset
             - option_data
           additionalProperties: false
-        examples:
-          application/json:
+          example:
             rate: 0.01
             asset: 179.0
             num_u: 8
             option_data: 
               - maturity: 1.0
                 option_data:
-                - price: 83.64241902939904
-                  strike: 95
-                - price: 78.70749915336623
-                  strike: 100
-                - price: 49.67870801443189
-                  strike: 130
-                - price: 31.507275556416033
-                  strike: 150
-                - price: 23.16931042274794
-                  strike: 160
-                - price: 19.29584502675351
-                  strike: 165
-                - price: 15.68163758750211
-                  strike: 170
-                - price: 12.385184069893171
-                  strike: 175
-                - price: 7.00231860293033
-                  strike: 185
-                - price: 5.0169630193886405
-                  strike: 190
-                - price: 3.509875933106713
-                  strike: 195
+                  - price: 83.64241902939904
+                    strike: 95
+                  - price: 78.70749915336623
+                    strike: 100
+                  - price: 49.67870801443189
+                    strike: 130
+                  - price: 31.507275556416033
+                    strike: 150
+                  - price: 23.16931042274794
+                    strike: 160
+                  - price: 19.29584502675351
+                    strike: 165
+                  - price: 15.68163758750211
+                    strike: 170
+                  - price: 12.385184069893171
+                    strike: 175
+                  - price: 7.00231860293033
+                    strike: 185
+                  - price: 5.0169630193886405
+                    strike: 190
+                  - price: 3.509875933106713
+                    strike: 195
