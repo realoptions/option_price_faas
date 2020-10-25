@@ -55,12 +55,7 @@ impl From<anyhow::Error> for ParameterError {
         ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
     }
 }
-/*
-impl From<argmin::core::Error> for ParameterError {
-    fn from(error: argmin::core::Error) -> ParameterError {
-        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
-    }
-}*/
+
 impl From<JsonError<'_>> for ParameterError {
     fn from(error: JsonError) -> ParameterError {
         let msg = match error {
@@ -121,6 +116,11 @@ pub struct HestonParameters {
     pub rho: f64,
 }
 
+#[derive(Serialize)]
+pub struct CalibrationResponse {
+    pub parameters: CFParameters,
+    pub final_cost_value: f64,
+}
 #[derive(Deserialize)]
 pub struct CalibrationParameters {
     pub option_data: Vec<OptionDataMaturity>,

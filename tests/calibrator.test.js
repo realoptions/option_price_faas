@@ -20,7 +20,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/heston/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.eta_v).toBeDefined()
+            return expect(response.parameters.eta_v).toBeDefined()
         })
 
     })
@@ -29,7 +29,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/cgmy/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.c).toBeDefined()
+            return expect(response.parameters.c).toBeDefined()
         })
 
     })
@@ -38,7 +38,7 @@ describe('option prices', () => {
             `http://localhost:${port}/v2/merton/calibrator/call`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
-            return expect(response.lambda).toBeDefined()
+            return expect(response.parameters.lambda).toBeDefined()
         })
 
     })
