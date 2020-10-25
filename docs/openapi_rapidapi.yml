@@ -2401,34 +2401,34 @@ paths:
           description: CGMY parameters
           schema:
             type: object
-              properties:
-                sigma:
-                  type: number
-                  example: 0.3
-                c:
-                  type: number
-                  example: 0.3
-                g:
-                  type: number
-                  example: 5
-                m:
-                  type: number
-                  example: 5
-                y:
-                  type: number
-                  example: 1.2
-                speed:
-                  type: number
-                  example: 0.2
-                v0:
-                  type: number
-                  example: 0.9
-                eta_v:
-                  type: number
-                  example: 0.2
-                rho:
-                  type: number
-                  example: -0.5
+            properties:
+              sigma:
+                type: number
+                example: 0.3
+              c:
+                type: number
+                example: 0.3
+              g:
+                type: number
+                example: 5
+              m:
+                type: number
+                example: 5
+              y:
+                type: number
+                example: 1.2
+              speed:
+                type: number
+                example: 0.2
+              v0:
+                type: number
+                example: 0.9
+              eta_v:
+                type: number
+                example: 0.2
+              rho:
+                type: number
+                example: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2436,11 +2436,12 @@ paths:
             properties: 
               err: 
                 type: string
+      parameters:
       - required: true
         name: body
         in: body
         schema:
-          type:object
+          type: object
           properties:
             rate: number
             num_u: number
@@ -2478,8 +2479,8 @@ paths:
             asset: 179.0
             num_u: 8
             option_data: 
-              maturity: 1.0
-              option_data:
+              - maturity: 1.0
+                option_data:
                 - price: 83.64241902939904
                   strike: 95
                 - price: 78.70749915336623
@@ -2512,31 +2513,31 @@ paths:
           description: Merton parameters
           schema:
             type: object
-              properties:
-                sigma:
-                  type: number
-                  example: 0.3
-                lambda:
-                  type: number
-                  example: 0.3
-                mu_l:
-                  type: number
-                  example: 0.3
-                sig_l:
-                  type: number
-                  example: 0.3
-                speed:
-                  type: number
-                  example: 0.2
-                v0:
-                  type: number
-                  example: 0.9
-                eta_v:
-                  type: number
-                  example: 0.2
-                rho:
-                  type: number
-                  example: -0.5
+            properties:
+              sigma:
+                type: number
+                example: 0.3
+              lambda:
+                type: number
+                example: 0.3
+              mu_l:
+                type: number
+                example: 0.3
+              sig_l:
+                type: number
+                example: 0.3
+              speed:
+                type: number
+                example: 0.2
+              v0:
+                type: number
+                example: 0.9
+              eta_v:
+                type: number
+                example: 0.2
+              rho:
+                type: number
+                example: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2544,11 +2545,12 @@ paths:
             properties: 
               err: 
                 type: string
+      parameters:
       - required: true
         name: body
         in: body
         schema:
-          type:object
+          type: object
           properties:
             rate: number
             num_u: number
@@ -2586,8 +2588,8 @@ paths:
             asset: 179.0
             num_u: 8
             option_data: 
-              maturity: 1.0
-              option_data:
+              - maturity: 1.0
+                option_data:
                 - price: 83.64241902939904
                   strike: 95
                 - price: 78.70749915336623
@@ -2620,22 +2622,22 @@ paths:
           description: Heston parameters
           schema:
             type: object
-              properties:
-                sigma:
-                  type: number
-                  example: 0.3
-                speed:
-                  type: number
-                  example: 0.2
-                v0:
-                  type: number
-                  example: 0.9
-                eta_v:
-                  type: number
-                  example: 0.2
-                rho:
-                  type: number
-                  example: -0.5
+            properties:
+              sigma:
+                type: number
+                example: 0.3
+              speed:
+                type: number
+                example: 0.2
+              v0:
+                type: number
+                example: 0.9
+              eta_v:
+                type: number
+                example: 0.2
+              rho:
+                type: number
+                example: -0.5
         '400':
           description: Error for incorrect request
           schema:
@@ -2643,11 +2645,12 @@ paths:
             properties: 
               err: 
                 type: string
+      parameters:
       - required: true
         name: body
         in: body
         schema:
-          type:object
+          type: object
           properties:
             rate: number
             num_u: number
@@ -2685,8 +2688,8 @@ paths:
             asset: 179.0
             num_u: 8
             option_data: 
-              maturity: 1.0
-              option_data:
+              - maturity: 1.0
+                option_data:
                 - price: 83.64241902939904
                   strike: 95
                 - price: 78.70749915336623

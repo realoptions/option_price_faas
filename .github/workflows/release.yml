@@ -63,6 +63,10 @@ jobs:
         mv -f final.yml ./docs/openapi_rapidapi.yml
         cat ./docs/openapi_rapidapi.yml
 
+    - name: validate swagger
+      run: |
+        npm ci
+        node ./tests/swagger_validator
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0

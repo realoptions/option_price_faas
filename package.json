@@ -27,6 +27,10 @@
   "devDependencies": {
     "husky": "^4.2.3",
     "jest": "^25.1.0",
-    "node-fetch": "^2.6.0"
-  }
+    "node-fetch": "^2.6.1",
+    "js-yaml": "^3.14.0",
+    "swagger-model-validator": "^3.0.19",
+    "swagger-parser": "^10.0.2"
+  },
+  "dependencies": {}
 }
