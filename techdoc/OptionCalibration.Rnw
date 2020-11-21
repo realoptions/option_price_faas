@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{hyperref} 
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\section{Option Calibration}
+\setlength{\parindent}{0cm}
+
+The problem of calibrating option prices to market values (the ``inverse problem'') is non-trivial especially with complex pricing models with many parameters.  A naive approach is to perform optimization by minimizing a distance between the prices provided by the market and the modeled prices by varying the input parameters.  However, this can be computationally intensive.  The problem is not convex and there may be a plethora of local minima. The parameter surface may have many ``flat'' areas leading to unstable parameter solutions.  
+\\
+\\
+In our study, we focus on calibrating models defined in the \href{https://github.com/realoptions/option_price_faas/tree/master/techdoc}{Option Calculation} paper.  We use a Heston model, a jump-diffusion a la \href{http://www.people.hbs.edu/rmerton/optionpricingwhenunderlingstock.pdf}{Merton (1976)}, and a CGMY model.  
+\\
+\\
+The code which runs the results shown below is available at the following Github repo: \href{https://github.com/realoptions/option_price_faas}{Option Price Functions}.  
+
+\section{Calibration}
+
+Calibration has traditionally taken the following form:
+
+\[\min_\theta \sum_k w_k \left(C_k-C(k; \theta)\right)^2 \]
+Where \(w_k\) is a weight, \(\theta\) are the parameters describing the (risk-neutral) asset process, \(C_k\) is the observed option prices at log-strike \(k\), and \(C(k, \theta)\) is the modeled price.  
+\\
+\\
+As mentioned in the introduction, this problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use a combination of a genetic \href{https://www.cs.tufts.edu/comp/150GA/homeworks/hw3/_reading7\%20Cuckoo\%20search.pdf}{cuckoo search} algorithm and a ``standard'' L-BFGS to perform the optimization.  The use of the cuckoo search allows the objective function space to be fully explored.  Once a "good" estimate is found via the cuckoo search, L-BFGS can be used for local searching to find the minimum.  The intuition is that the genetic algorithm finds the "right area" to explore locally, and L-BFGS takes over to more identify the minimum more precisely.  Following \href{https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.377.2222&rep=rep1&type=pdf}{Chen Bin}, we choose \(w_k=w=\frac{50}{\sum_i C_i^2)}\).  
+
+\subsection{Results}
+
+\subsubsection{Heston}
+
+<<echo=FALSE>>=
+require(jsonlite)
+library(xtable)
+library(knitr)
+options(digits=4)
+base='./'
+#base='~/Documents/code/finside/option_price_faas/techdoc/'
+@
+
+<<fig=T, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+
+actual=fromJSON(readLines(paste0(base, 'techdoc_heston_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_heston.json')))
+df <- data.frame(Type = c("Actual", "Estimate"), eta=c(actual$eta_v, estimates$eta_v), speed=c(actual$speed, estimates$speed), sigma=c(actual$sigma, estimates$sigma), rho=c(actual$rho, estimates$rho))
+strCaption <- paste0("Heston Comparison")
+print(xtable(df, digits=2, caption=strCaption, label="Test_table"), 
+      size="footnotesize", #Change size; useful for bigger tables
+      include.rownames=FALSE, #Don't print rownames
+      include.colnames=FALSE, #We create them ourselves
+      caption.placement="top", 
+      hline.after=NULL, #We don't need hline; we use booktabs
+      add.to.row = list(pos = list(-1, 
+                                   nrow(df)),
+                        command = c(paste("\\toprule \n",
+                                          " & $\\eta$ & speed  & $\\sigma $ & $\\rho$ \\\\\n", 
+                                          "\\midrule \n"),
+                                    "\\bottomrule \n")
+                        )
+      )
+@
+
+\begin{table}[ht]
+\centering
+\caption{Heston Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  \toprule 
+  & $\eta$ & speed  & $\sigma $ & $\rho$ \\
+ \midrule 
+ Actual & \Sexpr{actual$eta_v} & \Sexpr{actual$speed} & \Sexpr{actual$sigma} & \Sexpr{actual$rho} \\ 
+  Estimate & \Sexpr{estimates$eta_v} & \Sexpr{estimates$speed} & \Sexpr{estimates$sigma} & \Sexpr{estimates$rho} \\ 
+   \bottomrule 
+\end{tabular}
+\endgroup
+\end{table}
+
+
+\end{document}

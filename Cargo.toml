@@ -50,6 +50,10 @@ path = "src/bin/option_price.rs"
 name = "option_price_auth"
 path = "src/bin/option_price_auth.rs"
 
+[[bin]]
+name = "generate_docs"
+path = "src/bin/generate_docs.rs"
+
 [lib]
 name = "utils"
 path = "src/lib/lib.rs"
