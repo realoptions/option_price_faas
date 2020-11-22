@@ -20,6 +20,7 @@ pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
     }
 }
 
+const CGMY_SIGMA: f64 = 0.0;
 fn get_cgmy_calibration(
     rate: f64,
 ) -> (
@@ -30,13 +31,13 @@ fn get_cgmy_calibration(
         .to_vector()
         .into_iter()
         .enumerate()
-        .filter(|(index, _)| index < &5)
+        .filter(|(index, _)| index < &4)
         .map(|(_, v)| convert_constraints_to_cuckoo_ul(&v))
         .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
-            [c, g, m, y, sigma] => {
-                (cf_functions::cgmy::cgmy_log_risk_neutral_cf(u, *c, *g, *m, *y, rate, *sigma)
+            [c, g, m, y] => {
+                (cf_functions::cgmy::cgmy_log_risk_neutral_cf(u, *c, *g, *m, *y, rate, CGMY_SIGMA)
                     * maturity)
                     .exp()
             }
@@ -111,31 +112,20 @@ fn convert_constraints_to_cuckoo_ul(
 }
 
 const NEST_SIZE: usize = 25;
-const NUM_SIMS: usize = 1500;
-const TOL: f64 = 0.0001; //doesn't need to be super accurate, just close enough for lbfgs
+const NUM_SIMS: usize = 500;
 
-fn optimize<T, S>(
-    num_u: usize,
-    asset: f64,
-    option_data: &[OptionDataMaturity],
+//it may not get to this accuracy before NUM_SIMS, but the
+//more accurate we can make it the better the LBFGS performs
+const TOL: f64 = 0.0000001;
+
+fn optimize<T>(
     ul: &[cuckoo::UpperLower],
-    rate: f64,
     max_iter: usize,
-    get_max_strike: T,
-    cf_inst: S,
+    obj_fn: T,
 ) -> Result<(Vec<f64>, f64), ParameterError>
 where
-    S: Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    T: Fn(&[f64], f64) -> f64 + Sync,
+    T: Fn(&[f64]) -> f64 + Sync,
 {
-    let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
-        num_u,
-        asset,
-        &option_data,
-        rate,
-        &get_max_strike,
-        &cf_inst,
-    );
     let (mut optimal_parameters, _) =
         cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
             cuckoo::get_rng_system_seed()
@@ -151,7 +141,9 @@ where
             .zip(ul)
         {
             if parameter >= &upper_lower.upper || parameter <= &upper_lower.lower {
-                gx[index] = -1.0; //get out of here!!
+                // forcing a negative gradient if near the edges to
+                // push it back into the correct space
+                gx[index] = -1.0;
             } else {
                 gx[index] = *gradient;
             }
@@ -173,6 +165,35 @@ where
         );
     Ok((optimal_parameters, fn_val))
 }
+fn cgmy_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64 + Sync {
+    move |params: &[f64], maturity: f64| {
+        let c = params[0];
+        let g = params[1];
+        let m = params[2];
+        let y = params[3];
+        //let sigma = params[4];
+
+        let vol = cf_functions::cgmy::cgmy_diffusion_vol(CGMY_SIGMA, c, g, m, y, maturity);
+        crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+    }
+}
+fn merton_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64 + Sync {
+    move |params: &[f64], maturity: f64| {
+        let lambda = params[0];
+        let mu_l = params[1];
+        let sig_l = params[2];
+        let sigma = params[3];
+        let vol = cf_functions::merton::jump_diffusion_vol(sigma, lambda, mu_l, sig_l, maturity);
+        crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+    }
+}
+fn heston_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64 + Sync {
+    move |params: &[f64], maturity: f64| {
+        let sigma = params[0];
+        let vol = sigma * maturity.sqrt();
+        crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+    }
+}
 pub fn get_option_calibration_results_as_json(
     model_choice: i32,
     option_data: &[OptionDataMaturity],
@@ -185,34 +206,24 @@ pub fn get_option_calibration_results_as_json(
     match model_choice {
         CGMY => {
             let (cf_inst, bounds) = get_cgmy_calibration(rate);
-            let get_max_strike = |params: &[f64], maturity| {
-                let c = params[0];
-                let g = params[1];
-                let m = params[2];
-                let y = params[3];
-                let sigma = params[4];
-
-                let vol = cf_functions::cgmy::cgmy_diffusion_vol(sigma, c, g, m, y, maturity);
-                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
-            };
-            let (results, fn_value) = optimize(
+            let get_max_strike = cgmy_max_strike(asset, option_scale);
+            let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
                 asset,
                 &option_data,
-                &bounds,
                 rate,
-                max_iter,
                 &get_max_strike,
                 &cf_inst,
-            )?;
+            );
+            let (results, fn_value) = optimize(&bounds, max_iter, &obj_fn)?;
             match &results[..] {
-                [c, g, m, y, sigma] => Ok(CalibrationResponse {
+                [c, g, m, y] => Ok(CalibrationResponse {
                     parameters: CFParameters::CGMY(CGMYParameters {
                         c: *c,
                         g: *g,
                         m: *m,
                         y: *y,
-                        sigma: *sigma,
+                        sigma: CGMY_SIGMA,
                         v0: 1.0,
                         speed: 0.0,
                         eta_v: 0.0,
@@ -227,25 +238,16 @@ pub fn get_option_calibration_results_as_json(
         }
         MERTON => {
             let (cf_inst, bounds) = get_merton_calibration(rate);
-            let get_max_strike = |params: &[f64], maturity| {
-                let lambda = params[0];
-                let mu_l = params[1];
-                let sig_l = params[2];
-                let sigma = params[3];
-                let vol =
-                    cf_functions::merton::jump_diffusion_vol(sigma, lambda, mu_l, sig_l, maturity);
-                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
-            };
-            let (results, fn_value) = optimize(
+            let get_max_strike = merton_max_strike(asset, option_scale);
+            let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
                 asset,
                 &option_data,
-                &bounds,
                 rate,
-                max_iter,
                 &get_max_strike,
                 &cf_inst,
-            )?;
+            );
+            let (results, fn_value) = optimize(&bounds, max_iter, &obj_fn)?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma] => Ok(CalibrationResponse {
                     parameters: CFParameters::Merton(MertonParameters {
@@ -267,21 +269,16 @@ pub fn get_option_calibration_results_as_json(
         }
         HESTON => {
             let (cf_inst, bounds) = get_heston_calibration(rate);
-            let get_max_strike = |params: &[f64], maturity: f64| {
-                let sigma = params[0];
-                let vol = sigma * maturity.sqrt();
-                crate::pricing_maps::get_max_strike(asset, option_scale, vol)
-            };
-            let (results, fn_value) = optimize(
+            let get_max_strike = heston_max_strike(asset, option_scale);
+            let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
                 asset,
                 &option_data,
-                &bounds,
                 rate,
-                max_iter,
                 &get_max_strike,
                 &cf_inst,
-            )?;
+            );
+            let (results, fn_value) = optimize(&bounds, max_iter, &obj_fn)?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CalibrationResponse {
                     parameters: CFParameters::Heston(HestonParameters {
@@ -556,7 +553,7 @@ mod tests {
         assert!(params.c > 0.0);
         assert!(params.g > 0.0);
         assert!(params.m > 0.0);
-        assert!(params.sigma > 0.0);
+        //assert!(params.sigma > 0.0);
         println!("c: {}", params.c);
         println!("g: {}", params.g);
         println!("m: {}", params.m);
@@ -566,5 +563,85 @@ mod tests {
         println!("speed: {}", params.speed);
         println!("eta_v: {}", params.eta_v);
         println!("rho: {}", params.rho);
+    }
+    #[test]
+    fn test_cgmy_recover_exact() {
+        let stock = 178.46;
+        let rate = 0.0;
+        let maturity = 1.0;
+
+        let strikes = vec![
+            95.0, 100.0, 130.0, 150.0, 160.0, 165.0, 170.0, 175.0, 185.0, 190.0, 195.0, 200.0,
+            210.0, 240.0, 250.0,
+        ];
+        let num_u = 256;
+        let option_scale = 10.0;
+        let cgmy_parameters = CFParameters::CGMY(CGMYParameters {
+            sigma: 0.0,
+            c: 1.0,
+            g: 5.0,
+            m: 5.0,
+            y: 1.5,
+            speed: 0.0,
+            v0: 1.0,
+            eta_v: 0.0,
+            rho: 0.0,
+        });
+        let results = crate::pricing_maps::get_option_results_as_json(
+            crate::constants::CALL_PRICE,
+            false,
+            &cgmy_parameters,
+            option_scale,
+            num_u,
+            stock,
+            maturity,
+            rate,
+            &strikes,
+        )
+        .unwrap();
+
+        let option_data: Vec<OptionData> = results
+            .iter()
+            .map(
+                |crate::pricing_maps::GraphElement {
+                     at_point, value, ..
+                 }| {
+                    OptionData {
+                        price: *value,
+                        strike: *at_point,
+                    }
+                },
+            )
+            .collect();
+
+        let option_data = vec![OptionDataMaturity {
+            maturity,
+            option_data,
+        }];
+        let (cf_inst, _bounds) = get_cgmy_calibration(rate);
+        let get_max_strike = cgmy_max_strike(stock, option_scale);
+        let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
+            num_u,
+            stock,
+            &option_data,
+            rate,
+            &get_max_strike,
+            &cf_inst,
+        );
+        let cgmy_params_unwrap = (match cgmy_parameters {
+            CFParameters::CGMY(params) => Ok(params),
+            _ => Err("Cant get here"),
+        })
+        .unwrap();
+        let values = vec![
+            cgmy_params_unwrap.c,
+            cgmy_params_unwrap.g,
+            cgmy_params_unwrap.m,
+            cgmy_params_unwrap.y,
+            //cgmy_params_unwrap.sigma,
+        ];
+        let obj_value = obj_fn(&values);
+
+        assert_eq!(obj_value, 0.0);
     }
 }

@@ -267,7 +267,7 @@ impl MertonConstraints<'_> {
     }
 }
 
-pub const PARAMETER_CONSTRAINTS:ParameterConstraints=ParameterConstraints {
+pub const PARAMETER_CONSTRAINTS: ParameterConstraints = ParameterConstraints {
     rate: &ConstraintsSchema {
         lower: 0.0,
         upper: 0.4,

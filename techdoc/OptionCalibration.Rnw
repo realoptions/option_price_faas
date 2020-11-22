@@ -87,9 +87,9 @@ estimates=fromJSON(readLines(paste0(base, 'techdoc_cgmy.json')))
 \label{Test_table}
 \begingroup\footnotesize
 \begin{tabular}{lrrrr}
-  & c & g  &  m   & y \\
+  & c & g  &  m   & y  \\
  Actual & \Sexpr{actual$c} & \Sexpr{actual$g} & \Sexpr{actual$m} & \Sexpr{actual$y} \\ 
-  Estimate & \Sexpr{estimates$c} & \Sexpr{estimates$g} & \Sexpr{estimates$m} & \Sexpr{estimates$y} \\ 
+  Estimate & \Sexpr{estimates$c} & \Sexpr{estimates$g} & \Sexpr{estimates$m} & \Sexpr{estimates$y}  \\ 
 \end{tabular}
 \endgroup
 \end{table}

@@ -81,6 +81,7 @@ fn main() -> std::io::Result<()> {
                 _ => Err("bad result"),
             };
             let params = params.unwrap();
+            println!("this is cost function heston: {}", result.final_cost_value);
             let json_results = json!(params);
 
             let json_actual = json!(heston_parameters);
@@ -134,8 +135,6 @@ fn main() -> std::io::Result<()> {
                     |crate::pricing_maps::GraphElement {
                          at_point, value, ..
                      }| {
-                        println!("price: {}", value);
-                        println!("strike: {}", at_point);
                         OptionData {
                             price: *value,
                             strike: *at_point,
@@ -164,6 +163,7 @@ fn main() -> std::io::Result<()> {
                 _ => Err("bad result"),
             };
             let params = params.unwrap();
+            println!("this is cost function merton: {}", result.final_cost_value);
             let json_results = json!(params);
 
             let json_actual = json!(merton_parameters);
@@ -190,7 +190,7 @@ fn main() -> std::io::Result<()> {
                 c: 1.0,
                 g: 5.0,
                 m: 5.0,
-                y: 1.98,
+                y: 1.5, //was 1.98, but that is close to the edge (2)
                 speed: 0.0,
                 v0: 1.0,
                 eta_v: 0.0,
@@ -215,8 +215,6 @@ fn main() -> std::io::Result<()> {
                     |crate::pricing_maps::GraphElement {
                          at_point, value, ..
                      }| {
-                        println!("price: {}", value);
-                        println!("strike: {}", at_point);
                         OptionData {
                             price: *value,
                             strike: *at_point,
@@ -244,6 +242,7 @@ fn main() -> std::io::Result<()> {
                 CFParameters::CGMY(params) => Ok(params),
                 _ => Err("bad result"),
             };
+            println!("this is cost function cgmy: {}", result.final_cost_value);
             let params = params.unwrap();
             let json_results = json!(params);
 
