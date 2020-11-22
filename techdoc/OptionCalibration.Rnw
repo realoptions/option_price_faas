@@ -2,7 +2,6 @@
 \usepackage{amsfonts}
 \usepackage{hyperref} 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 \section{Option Calibration}
 \setlength{\parindent}{0cm}
 
@@ -28,7 +27,7 @@ As mentioned in the introduction, this problem is not trivial.  See \href{http:/
 
 \subsubsection{Heston}
 
-<<echo=FALSE>>=
+<<echo=FALSE, message=FALSE>>=
 require(jsonlite)
 library(xtable)
 library(knitr)
@@ -37,26 +36,9 @@ base='./'
 #base='~/Documents/code/finside/option_price_faas/techdoc/'
 @
 
-<<fig=T, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
-
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
 actual=fromJSON(readLines(paste0(base, 'techdoc_heston_actual.json')))
 estimates=fromJSON(readLines(paste0(base, 'techdoc_heston.json')))
-df <- data.frame(Type = c("Actual", "Estimate"), eta=c(actual$eta_v, estimates$eta_v), speed=c(actual$speed, estimates$speed), sigma=c(actual$sigma, estimates$sigma), rho=c(actual$rho, estimates$rho))
-strCaption <- paste0("Heston Comparison")
-print(xtable(df, digits=2, caption=strCaption, label="Test_table"), 
-      size="footnotesize", #Change size; useful for bigger tables
-      include.rownames=FALSE, #Don't print rownames
-      include.colnames=FALSE, #We create them ourselves
-      caption.placement="top", 
-      hline.after=NULL, #We don't need hline; we use booktabs
-      add.to.row = list(pos = list(-1, 
-                                   nrow(df)),
-                        command = c(paste("\\toprule \n",
-                                          " & $\\eta$ & speed  & $\\sigma $ & $\\rho$ \\\\\n", 
-                                          "\\midrule \n"),
-                                    "\\bottomrule \n")
-                        )
-      )
 @
 
 \begin{table}[ht]
@@ -65,15 +47,51 @@ print(xtable(df, digits=2, caption=strCaption, label="Test_table"),
 \label{Test_table}
 \begingroup\footnotesize
 \begin{tabular}{lrrrr}
-  \toprule 
   & $\eta$ & speed  & $\sigma $ & $\rho$ \\
- \midrule 
  Actual & \Sexpr{actual$eta_v} & \Sexpr{actual$speed} & \Sexpr{actual$sigma} & \Sexpr{actual$rho} \\ 
   Estimate & \Sexpr{estimates$eta_v} & \Sexpr{estimates$speed} & \Sexpr{estimates$sigma} & \Sexpr{estimates$rho} \\ 
-   \bottomrule 
 \end{tabular}
 \endgroup
 \end{table}
 
+\subsubsection{Merton}
+
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+actual=fromJSON(readLines(paste0(base, 'techdoc_merton_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_merton.json')))
+@
+
+\begin{table}[ht]
+\centering
+\caption{Merton Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  & $\lambda$ & $\mu_l$  &  $\sigma_l$ &  $\sigma $ \\
+ Actual & \Sexpr{actual$lambda} & \Sexpr{actual$mu_l} & \Sexpr{actual$sig_l} & \Sexpr{actual$sigma} \\ 
+  Estimate & \Sexpr{estimates$lambda} & \Sexpr{estimates$mu_l} & \Sexpr{estimates$sig_l} & \Sexpr{estimates$sigma} \\ 
+\end{tabular}
+\endgroup
+\end{table}
+
+\subsubsection{CGMY}
+
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+actual=fromJSON(readLines(paste0(base, 'techdoc_cgmy_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_cgmy.json')))
+@
+
+\begin{table}[ht]
+\centering
+\caption{CGMY Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  & c & g  &  m   & y \\
+ Actual & \Sexpr{actual$c} & \Sexpr{actual$g} & \Sexpr{actual$m} & \Sexpr{actual$y} \\ 
+  Estimate & \Sexpr{estimates$c} & \Sexpr{estimates$g} & \Sexpr{estimates$m} & \Sexpr{estimates$y} \\ 
+\end{tabular}
+\endgroup
+\end{table}
 
 \end{document}
