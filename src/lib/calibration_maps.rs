@@ -4,12 +4,11 @@ use crate::constraints::{
     MertonParameters, ParameterError, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
 use fang_oost_option::option_calibration::OptionDataMaturity;
-use finitediff::FiniteDiff;
-use liblbfgs::lbfgs;
+
 use nlopt::Nlopt;
 use num_complex::Complex;
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
+use rand::distributions::{Distribution, Uniform};
+use rand::thread_rng;
 pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
     match option_type {
         "cgmy" => Ok(CGMY),
@@ -124,71 +123,7 @@ fn get_heston_calibration(
     )
 }
 
-fn convert_constraints_to_cuckoo_ul(
-    constraint: &crate::constraints::ConstraintsSchema,
-) -> cuckoo::UpperLower {
-    cuckoo::UpperLower {
-        upper: constraint.upper,
-        lower: constraint.lower,
-    }
-}
-
-const NEST_SIZE: usize = 25;
-const NUM_SIMS: usize = 500;
-
-//it may not get to this accuracy before NUM_SIMS, but the
-//more accurate we can make it the better the LBFGS performs
-const TOL: f64 = 0.0000001;
-
 fn optimize<T>(
-    ul: &[cuckoo::UpperLower],
-    max_iter: usize,
-    obj_fn: T,
-) -> Result<(Vec<f64>, f64), ParameterError>
-where
-    T: Fn(&[f64]) -> f64 + Sync,
-{
-    let (mut optimal_parameters, _) =
-        cuckoo::optimize(&obj_fn, ul, NEST_SIZE, NUM_SIMS, TOL, || {
-            cuckoo::get_rng_system_seed()
-        })?;
-
-    let evaluate = |x: &[f64], gx: &mut [f64]| {
-        for (((index, gradient), parameter), upper_lower) in x
-            .to_vec()
-            .central_diff(&|x| obj_fn(&x))
-            .iter()
-            .enumerate()
-            .zip(x)
-            .zip(ul)
-        {
-            if parameter >= &upper_lower.upper || parameter <= &upper_lower.lower {
-                // forcing a negative gradient if near the edges to
-                // push it back into the correct space
-                gx[index] = -1.0;
-            } else {
-                gx[index] = *gradient;
-            }
-        }
-        Ok(obj_fn(x))
-    };
-    let mut fn_val = 0.0;
-    let _result = lbfgs()
-        .with_max_iterations(max_iter)
-        .with_epsilon(f64::EPSILON)
-        .with_gradient_only()
-        .minimize(
-            &mut optimal_parameters, // input variables
-            evaluate,                // define how to evaluate function
-            |prgr| {
-                fn_val = prgr.fx;
-                false
-            },
-        );
-    Ok((optimal_parameters, fn_val))
-}
-
-fn optimize_cgmy<T>(
     lower_bounds: &[f64],
     upper_bounds: &[f64],
     max_iter: usize,
@@ -205,33 +140,33 @@ where
         (),
     );
 
-    optim.set_upper_bounds(&upper_bounds).unwrap();
-    optim.set_lower_bounds(&lower_bounds).unwrap();
-    optim.set_xtol_rel(f64::EPSILON).unwrap();
+    optim.set_upper_bounds(&upper_bounds)?;
+    optim.set_lower_bounds(&lower_bounds)?;
+    optim.set_xtol_rel(f64::EPSILON)?;
 
     let mut init: Vec<f64> = upper_bounds
         .iter()
         .zip(lower_bounds)
         .map(|(upper, lower)| (upper + lower) / 2.0)
         .collect();
-    let (_, mut result) = optim.optimize(&mut init).unwrap();
+    let (_, mut result) = optim.optimize(&mut init).map_err(|(err, _v)| err)?;
     let uniform = Uniform::new(0.0f64, 1.0);
     let mut local_vec = init.clone();
-    let mut rng = cuckoo::get_rng_system_seed();
-    (0..max_iter).for_each(|_i| {
+    let mut rng = thread_rng();
+    for _i in 0..max_iter {
         for ((local_element, lower), upper) in
             local_vec.iter_mut().zip(lower_bounds).zip(upper_bounds)
         {
             *local_element = uniform.sample(&mut rng) * (upper - lower) + lower;
         }
-        let (_, local_result) = optim.optimize(&mut local_vec).unwrap();
+        let (_, local_result) = optim.optimize(&mut local_vec).map_err(|(err, _v)| err)?;
         if local_result < result {
             for (init_el, local_element) in init.iter_mut().zip(&local_vec) {
                 *init_el = *local_element;
             }
             result = local_result;
         }
-    });
+    }
 
     Ok((init, result))
 }
@@ -285,9 +220,7 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            //let (results, fn_value) = optimize(&bounds, max_iter, &obj_fn)?;
-            let (results, fn_value) =
-                optimize_cgmy(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
             match &results[..] {
                 [c, g, m, y] => Ok(CalibrationResponse {
                     parameters: CFParameters::CGMY(CGMYParameters {
@@ -319,8 +252,7 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            let (results, fn_value) =
-                optimize_cgmy(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma] => Ok(CalibrationResponse {
                     parameters: CFParameters::Merton(MertonParameters {
@@ -351,8 +283,7 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            let (results, fn_value) =
-                optimize_cgmy(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CalibrationResponse {
                     parameters: CFParameters::Heston(HestonParameters {
@@ -508,8 +439,6 @@ mod tests {
                 |crate::pricing_maps::GraphElement {
                      at_point, value, ..
                  }| {
-                    println!("price: {}", value);
-                    println!("strike: {}", at_point);
                     OptionData {
                         price: *value,
                         strike: *at_point,
@@ -594,8 +523,6 @@ mod tests {
                 |crate::pricing_maps::GraphElement {
                      at_point, value, ..
                  }| {
-                    println!("price: {}", value);
-                    println!("strike: {}", at_point);
                     OptionData {
                         price: *value,
                         strike: *at_point,

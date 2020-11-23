@@ -18,10 +18,10 @@ The code which runs the results shown below is available at the following Github
 Calibration has traditionally taken the following form:
 
 \[\min_\theta \sum_k w_k \left(C_k-C(k; \theta)\right)^2 \]
-Where \(w_k\) is a weight, \(\theta\) are the parameters describing the (risk-neutral) asset process, \(C_k\) is the observed option prices at log-strike \(k\), and \(C(k, \theta)\) is the modeled price.  
+Where \(w_k\) is a weight, \(\theta\) are the parameters describing the (risk-neutral) asset process, \(C_k\) is the observed option prices at log-strike \(k\), and \(C(k, \theta)\) is the modeled price.  Following \href{https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.377.2222&rep=rep1&type=pdf}{Chen Bin}, we choose \(w_k=w=\frac{50}{\sum_i C_i^2)}\).
 \\
 \\
-As mentioned in the introduction, this problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use a combination of a genetic \href{https://www.cs.tufts.edu/comp/150GA/homeworks/hw3/_reading7\%20Cuckoo\%20search.pdf}{cuckoo search} algorithm and a ``standard'' L-BFGS to perform the optimization.  The use of the cuckoo search allows the objective function space to be fully explored.  Once a "good" estimate is found via the cuckoo search, L-BFGS can be used for local searching to find the minimum.  The intuition is that the genetic algorithm finds the "right area" to explore locally, and L-BFGS takes over to more identify the minimum more precisely.  Following \href{https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.377.2222&rep=rep1&type=pdf}{Chen Bin}, we choose \(w_k=w=\frac{50}{\sum_i C_i^2)}\).  
+As mentioned in the introduction, this optimization problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use the Nelder-Mead algorithm and random starting points for the parameters to find a global minimum.  This works well in practice, as the following optimization attests.  Code to generate these tables is \href{https://github.com/realoptions/option_price_faas/tree/master/src/bin/generate_docs.rs}{here}
 
 \subsection{Results}
 
@@ -33,7 +33,6 @@ library(xtable)
 library(knitr)
 options(digits=4)
 base='./'
-#base='~/Documents/code/finside/option_price_faas/techdoc/'
 @
 
 <<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=

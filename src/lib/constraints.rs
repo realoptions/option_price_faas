@@ -44,15 +44,26 @@ impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
         ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
     }
 }
-impl From<cuckoo::IndexError> for ParameterError {
-    fn from(error: cuckoo::IndexError) -> ParameterError {
-        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
-    }
-}
 
-impl From<anyhow::Error> for ParameterError {
-    fn from(error: anyhow::Error) -> ParameterError {
-        ParameterError::new(&ErrorType::OptimizationError(error.to_string()))
+impl From<nlopt::FailState> for ParameterError {
+    fn from(error: nlopt::FailState) -> ParameterError {
+        match error {
+            nlopt::FailState::Failure => {
+                ParameterError::new(&ErrorType::OptimizationError("Failure".to_string()))
+            }
+            nlopt::FailState::ForcedStop => {
+                ParameterError::new(&ErrorType::OptimizationError("Forced Stop".to_string()))
+            }
+            nlopt::FailState::InvalidArgs => ParameterError::new(&ErrorType::OptimizationError(
+                "Invalid Arguments".to_string(),
+            )),
+            nlopt::FailState::OutOfMemory => {
+                ParameterError::new(&ErrorType::OptimizationError("Out of Memory".to_string()))
+            }
+            nlopt::FailState::RoundoffLimited => ParameterError::new(
+                &ErrorType::OptimizationError("Roundoff Limited".to_string()),
+            ),
+        }
     }
 }
 
