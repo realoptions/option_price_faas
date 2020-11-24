@@ -7,8 +7,6 @@ use fang_oost_option::option_calibration::OptionDataMaturity;
 
 use nlopt::Nlopt;
 use num_complex::Complex;
-use rand::distributions::{Distribution, Uniform};
-use rand::thread_rng;
 pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
     match option_type {
         "cgmy" => Ok(CGMY),
@@ -21,25 +19,83 @@ pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
 }
 
 const CGMY_SIGMA: f64 = 0.0;
+const CGMY_PARAMETER_NUM: usize = 4;
+const CGMY_LOWER_BOUNDS: [f64; CGMY_PARAMETER_NUM] = [
+    CGMY_CONSTRAINTS.c.lower,
+    CGMY_CONSTRAINTS.g.lower,
+    CGMY_CONSTRAINTS.m.lower,
+    CGMY_CONSTRAINTS.y.lower,
+];
+const CGMY_UPPER_BOUNDS: [f64; CGMY_PARAMETER_NUM] = [
+    CGMY_CONSTRAINTS.c.upper,
+    CGMY_CONSTRAINTS.g.upper,
+    CGMY_CONSTRAINTS.m.upper,
+    CGMY_CONSTRAINTS.y.upper,
+];
+const HESTON_PARAMETER_NUM: usize = 5;
+const HESTON_LOWER_BOUNDS: [f64; HESTON_PARAMETER_NUM] = [
+    HESTON_CONSTRAINTS.sigma.lower,
+    HESTON_CONSTRAINTS.v0.lower,
+    HESTON_CONSTRAINTS.speed.lower,
+    HESTON_CONSTRAINTS.eta_v.lower,
+    HESTON_CONSTRAINTS.rho.lower,
+];
+const HESTON_UPPER_BOUNDS: [f64; HESTON_PARAMETER_NUM] = [
+    HESTON_CONSTRAINTS.sigma.upper,
+    HESTON_CONSTRAINTS.v0.upper,
+    HESTON_CONSTRAINTS.speed.upper,
+    HESTON_CONSTRAINTS.eta_v.upper,
+    HESTON_CONSTRAINTS.rho.upper,
+];
+const MERTON_PARAMETER_NUM: usize = 4;
+const MERTON_LOWER_BOUNDS: [f64; MERTON_PARAMETER_NUM] = [
+    MERTON_CONSTRAINTS.lambda.lower,
+    MERTON_CONSTRAINTS.mu_l.lower,
+    MERTON_CONSTRAINTS.sig_l.lower,
+    MERTON_CONSTRAINTS.sigma.lower,
+];
+const MERTON_UPPER_BOUNDS: [f64; MERTON_PARAMETER_NUM] = [
+    MERTON_CONSTRAINTS.lambda.upper,
+    MERTON_CONSTRAINTS.mu_l.upper,
+    MERTON_CONSTRAINTS.sig_l.upper,
+    MERTON_CONSTRAINTS.sigma.upper,
+];
+
+fn get_dx(lower: f64, upper: f64, num_steps: usize) -> f64 {
+    (upper - lower) / (num_steps as f64)
+}
+
+fn get_midpoint(lower: f64, upper: f64) -> f64 {
+    (upper - lower) / 2.0
+}
+
+fn get_element(lower: f64, dx: f64, index: usize) -> f64 {
+    lower + dx * (index as f64)
+}
+
 fn get_cgmy_calibration(
     rate: f64,
+    num_steps: usize,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-    Vec<f64>,
+    Vec<Vec<f64>>,
 ) {
-    let mut lower_bounds: Vec<f64> = vec![];
-    let mut upper_bounds: Vec<f64> = vec![];
-
-    for (_, crate::constraints::ConstraintsSchema { lower, upper, .. }) in CGMY_CONSTRAINTS
-        .to_vector()
+    let mut init: Vec<f64> = CGMY_UPPER_BOUNDS
         .iter()
-        .enumerate()
-        .filter(|(index, _)| index < &4)
-    {
-        lower_bounds.push(*lower);
-        upper_bounds.push(*upper);
+        .zip(CGMY_LOWER_BOUNDS.iter())
+        .map(|(upper, lower)| get_midpoint(*lower, *upper))
+        .collect();
+    let dc = get_dx(
+        CGMY_CONSTRAINTS.c.lower,
+        CGMY_CONSTRAINTS.c.upper,
+        num_steps,
+    );
+    let mut results: Vec<Vec<f64>> = vec![];
+    for i in 1..num_steps {
+        init[0] = get_element(CGMY_CONSTRAINTS.c.lower, dc, i);
+        results.push(init.clone());
     }
+
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [c, g, m, y] => {
@@ -52,8 +108,7 @@ fn get_cgmy_calibration(
                 Complex::<f64>::new(0.0, 0.0)
             }
         },
-        lower_bounds,
-        upper_bounds,
+        results,
     )
 }
 
@@ -61,21 +116,13 @@ fn get_merton_calibration(
     rate: f64,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-    Vec<f64>,
+    Vec<Vec<f64>>,
 ) {
-    let mut lower_bounds: Vec<f64> = vec![];
-    let mut upper_bounds: Vec<f64> = vec![];
-
-    for (_, crate::constraints::ConstraintsSchema { lower, upper, .. }) in MERTON_CONSTRAINTS
-        .to_vector()
+    let init: Vec<f64> = MERTON_UPPER_BOUNDS
         .iter()
-        .enumerate()
-        .filter(|(index, _)| index < &4)
-    {
-        lower_bounds.push(*lower);
-        upper_bounds.push(*upper);
-    }
+        .zip(MERTON_LOWER_BOUNDS.iter())
+        .map(|(upper, lower)| get_midpoint(*lower, *upper))
+        .collect();
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [lambda, mu_l, sig_l, sigma] => (cf_functions::merton::merton_log_risk_neutral_cf(
@@ -87,28 +134,32 @@ fn get_merton_calibration(
                 Complex::<f64>::new(0.0, 0.0)
             }
         },
-        lower_bounds,
-        upper_bounds,
+        vec![init],
     )
 }
 
 fn get_heston_calibration(
     rate: f64,
+    num_steps: usize,
 ) -> (
     impl Fn(&Complex<f64>, f64, &[f64]) -> Complex<f64> + Sync,
-    Vec<f64>,
-    Vec<f64>,
+    Vec<Vec<f64>>,
 ) {
-    let mut lower_bounds: Vec<f64> = vec![];
-    let mut upper_bounds: Vec<f64> = vec![];
-
-    for crate::constraints::ConstraintsSchema { lower, upper, .. } in
-        HESTON_CONSTRAINTS.to_vector().iter()
-    {
-        lower_bounds.push(*lower);
-        upper_bounds.push(*upper);
+    let mut init: Vec<f64> = HESTON_UPPER_BOUNDS
+        .iter()
+        .zip(HESTON_LOWER_BOUNDS.iter())
+        .map(|(upper, lower)| get_midpoint(*lower, *upper))
+        .collect();
+    let dsigma = get_dx(
+        HESTON_CONSTRAINTS.sigma.lower,
+        HESTON_CONSTRAINTS.sigma.upper,
+        num_steps,
+    );
+    let mut results: Vec<Vec<f64>> = vec![];
+    for i in 1..num_steps {
+        init[0] = get_element(HESTON_CONSTRAINTS.sigma.lower, dsigma, i);
+        results.push(init.clone());
     }
-
     (
         move |u: &Complex<f64>, maturity: f64, params: &[f64]| match params {
             [sigma, v0, speed, eta_v, rho] => {
@@ -118,15 +169,14 @@ fn get_heston_calibration(
                 Complex::<f64>::new(0.0, 0.0) //can never get here
             }
         },
-        lower_bounds,
-        upper_bounds,
+        results,
     )
 }
-
+//strategy: iterate over "problematic" paramter (for heston this is sigma, for CGMY its "c")
 fn optimize<T>(
+    mut starting_points: Vec<Vec<f64>>, //consume starting_points
     lower_bounds: &[f64],
     upper_bounds: &[f64],
-    max_iter: usize,
     obj_fn: T,
 ) -> Result<(Vec<f64>, f64), ParameterError>
 where
@@ -144,31 +194,23 @@ where
     optim.set_lower_bounds(&lower_bounds)?;
     optim.set_xtol_rel(f64::EPSILON)?;
 
-    let mut init: Vec<f64> = upper_bounds
-        .iter()
-        .zip(lower_bounds)
-        .map(|(upper, lower)| (upper + lower) / 2.0)
-        .collect();
-    let (_, mut result) = optim.optimize(&mut init).map_err(|(err, _v)| err)?;
-    let uniform = Uniform::new(0.0f64, 1.0);
-    let mut local_vec = init.clone();
-    let mut rng = thread_rng();
-    for _i in 0..max_iter {
-        for ((local_element, lower), upper) in
-            local_vec.iter_mut().zip(lower_bounds).zip(upper_bounds)
-        {
-            *local_element = uniform.sample(&mut rng) * (upper - lower) + lower;
-        }
-        let (_, local_result) = optim.optimize(&mut local_vec).map_err(|(err, _v)| err)?;
+    let mut result = f64::INFINITY;
+    let mut best_index: usize = 0;
+    for (index, mut starting_point) in starting_points.iter_mut().enumerate() {
+        let (_, local_result) = optim
+            .optimize(&mut starting_point)
+            .map_err(|(err, _v)| err)?;
+
+        println!(
+            "this is localresult: {}, this is result: {}, this is index: {}",
+            local_result, result, index
+        );
         if local_result < result {
-            for (init_el, local_element) in init.iter_mut().zip(&local_vec) {
-                *init_el = *local_element;
-            }
+            best_index = index;
             result = local_result;
         }
     }
-
-    Ok((init, result))
+    Ok((starting_points.swap_remove(best_index), result))
 }
 fn cgmy_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64 + Sync {
     move |params: &[f64], maturity: f64| {
@@ -210,7 +252,7 @@ pub fn get_option_calibration_results_as_json(
 ) -> Result<CalibrationResponse, ParameterError> {
     match model_choice {
         CGMY => {
-            let (cf_inst, lower_bounds, upper_bounds) = get_cgmy_calibration(rate);
+            let (cf_inst, starting_points) = get_cgmy_calibration(rate, max_iter);
             let get_max_strike = cgmy_max_strike(asset, option_scale);
             let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
@@ -220,7 +262,12 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(
+                starting_points,
+                &CGMY_LOWER_BOUNDS,
+                &CGMY_UPPER_BOUNDS,
+                &obj_fn,
+            )?;
             match &results[..] {
                 [c, g, m, y] => Ok(CalibrationResponse {
                     parameters: CFParameters::CGMY(CGMYParameters {
@@ -242,7 +289,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         MERTON => {
-            let (cf_inst, lower_bounds, upper_bounds) = get_merton_calibration(rate);
+            let (cf_inst, starting_points) = get_merton_calibration(rate);
             let get_max_strike = merton_max_strike(asset, option_scale);
             let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
@@ -252,7 +299,12 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(
+                starting_points,
+                &MERTON_LOWER_BOUNDS,
+                &MERTON_UPPER_BOUNDS,
+                &obj_fn,
+            )?;
             match &results[..] {
                 [lambda, mu_l, sig_l, sigma] => Ok(CalibrationResponse {
                     parameters: CFParameters::Merton(MertonParameters {
@@ -273,7 +325,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         HESTON => {
-            let (cf_inst, lower_bounds, upper_bounds) = get_heston_calibration(rate);
+            let (cf_inst, starting_points) = get_heston_calibration(rate, max_iter);
             let get_max_strike = heston_max_strike(asset, option_scale);
             let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
@@ -283,7 +335,12 @@ pub fn get_option_calibration_results_as_json(
                 &get_max_strike,
                 &cf_inst,
             );
-            let (results, fn_value) = optimize(&lower_bounds, &upper_bounds, max_iter, &obj_fn)?;
+            let (results, fn_value) = optimize(
+                starting_points,
+                &HESTON_LOWER_BOUNDS,
+                &HESTON_UPPER_BOUNDS,
+                &obj_fn,
+            )?;
             match &results[..] {
                 [sigma, v0, speed, eta_v, rho] => Ok(CalibrationResponse {
                     parameters: CFParameters::Heston(HestonParameters {
@@ -372,7 +429,7 @@ mod tests {
             HESTON,
             &option_data,
             option_scale,
-            400,
+            4,
             num_u,
             stock,
             rate,
@@ -456,7 +513,7 @@ mod tests {
             MERTON,
             &option_data,
             option_scale,
-            400,
+            4,
             num_u,
             stock,
             rate,
@@ -540,7 +597,7 @@ mod tests {
             CGMY,
             &option_data,
             option_scale,
-            400,
+            4,
             num_u,
             stock,
             rate,
@@ -619,7 +676,7 @@ mod tests {
             maturity,
             option_data,
         }];
-        let (cf_inst, _lower_bounds, _upper_bounds) = get_cgmy_calibration(rate);
+        let (cf_inst, _starting_points) = get_cgmy_calibration(rate, 1);
         let get_max_strike = cgmy_max_strike(stock, option_scale);
         let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
             num_u,
@@ -644,5 +701,19 @@ mod tests {
         let obj_value = obj_fn(&values);
 
         assert_eq!(obj_value, 0.0);
+    }
+    #[test]
+    fn test_cgmy_init_values() {
+        let (_cf, init_values) = get_cgmy_calibration(0.0, 4);
+        assert_eq!(init_values[0][0], 0.5);
+        assert_eq!(init_values[1][0], 1.0);
+        assert_eq!(init_values[2][0], 1.5);
+    }
+    #[test]
+    fn test_heston_init_values() {
+        let (_cf, init_values) = get_heston_calibration(0.0, 4);
+        assert_eq!(init_values[0][0], 0.25);
+        assert_eq!(init_values[1][0], 0.5);
+        assert_eq!(init_values[2][0], 0.75);
     }
 }
