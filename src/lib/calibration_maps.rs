@@ -17,6 +17,16 @@ pub fn get_model_indicators(option_type: &str) -> Result<i32, ParameterError> {
         ))),
     }
 }
+pub fn get_num_iter(option_type: &str) -> Result<usize, ParameterError> {
+    match option_type {
+        "cgmy" => Ok(8),
+        "heston" => Ok(4),
+        "merton" => Ok(1),
+        _ => Err(ParameterError::new(&ErrorType::FunctionError(
+            option_type.to_string(),
+        ))),
+    }
+}
 
 const CGMY_SIGMA: f64 = 0.0;
 const CGMY_PARAMETER_NUM: usize = 4;
@@ -66,7 +76,7 @@ fn get_dx(lower: f64, upper: f64, num_steps: usize) -> f64 {
 }
 
 fn get_midpoint(lower: f64, upper: f64) -> f64 {
-    (upper - lower) / 2.0
+    (upper + lower) / 2.0
 }
 
 fn get_element(lower: f64, dx: f64, index: usize) -> f64 {
@@ -86,13 +96,13 @@ fn get_cgmy_calibration(
         .map(|(upper, lower)| get_midpoint(*lower, *upper))
         .collect();
     let dc = get_dx(
-        CGMY_CONSTRAINTS.c.lower,
-        CGMY_CONSTRAINTS.c.upper,
+        CGMY_CONSTRAINTS.y.lower,
+        CGMY_CONSTRAINTS.y.upper,
         num_steps,
     );
     let mut results: Vec<Vec<f64>> = vec![];
     for i in 1..num_steps {
-        init[0] = get_element(CGMY_CONSTRAINTS.c.lower, dc, i);
+        init[3] = get_element(CGMY_CONSTRAINTS.y.lower, dc, i);
         results.push(init.clone());
     }
 
@@ -201,10 +211,6 @@ where
             .optimize(&mut starting_point)
             .map_err(|(err, _v)| err)?;
 
-        println!(
-            "this is localresult: {}, this is result: {}, this is index: {}",
-            local_result, result, index
-        );
         if local_result < result {
             best_index = index;
             result = local_result;
@@ -245,14 +251,14 @@ pub fn get_option_calibration_results_as_json(
     model_choice: i32,
     option_data: &[OptionDataMaturity],
     option_scale: f64,
-    max_iter: usize,
+    num_iter: usize,
     num_u: usize,
     asset: f64,
     rate: f64,
 ) -> Result<CalibrationResponse, ParameterError> {
     match model_choice {
         CGMY => {
-            let (cf_inst, starting_points) = get_cgmy_calibration(rate, max_iter);
+            let (cf_inst, starting_points) = get_cgmy_calibration(rate, num_iter);
             let get_max_strike = cgmy_max_strike(asset, option_scale);
             let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,
@@ -325,7 +331,7 @@ pub fn get_option_calibration_results_as_json(
             }
         }
         HESTON => {
-            let (cf_inst, starting_points) = get_heston_calibration(rate, max_iter);
+            let (cf_inst, starting_points) = get_heston_calibration(rate, num_iter);
             let get_max_strike = heston_max_strike(asset, option_scale);
             let obj_fn = fang_oost_option::option_calibration::obj_fn_real(
                 num_u,

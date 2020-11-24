@@ -21,7 +21,7 @@ Calibration has traditionally taken the following form:
 Where \(w_k\) is a weight, \(\theta\) are the parameters describing the (risk-neutral) asset process, \(C_k\) is the observed option prices at log-strike \(k\), and \(C(k, \theta)\) is the modeled price.  Following \href{https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.377.2222&rep=rep1&type=pdf}{Chen Bin}, we choose \(w_k=w=\frac{50}{\sum_i C_i^2)}\).
 \\
 \\
-As mentioned in the introduction, this optimization problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use the Nelder-Mead algorithm and random starting points for the parameters to find a global minimum.  This works well in practice, as the following optimization attests.  Code to generate these tables is \href{https://github.com/realoptions/option_price_faas/tree/master/src/bin/generate_docs.rs}{here}
+As mentioned in the introduction, this optimization problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use the Nelder-Mead algorithm and choose various starting parameters to find a global minimum.  This works well in practice, as the following optimization attests.  Code to generate these tables is \href{https://github.com/realoptions/option_price_faas/tree/master/src/bin/generate_docs.rs}{here}
 
 \subsection{Results}
 

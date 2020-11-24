@@ -152,7 +152,7 @@ fn main() -> std::io::Result<()> {
                 MERTON,
                 &option_data,
                 option_scale,
-                4,
+                4, //not needed for merton
                 num_u,
                 stock,
                 rate,
