@@ -711,9 +711,8 @@ mod tests {
     #[test]
     fn test_cgmy_init_values() {
         let (_cf, init_values) = get_cgmy_calibration(0.0, 4);
-        assert_eq!(init_values[0][0], 0.5);
-        assert_eq!(init_values[1][0], 1.0);
-        assert_eq!(init_values[2][0], 1.5);
+        assert!(init_values[0][3] != init_values[1][3]);
+        assert!(init_values[2][3] != init_values[1][3]);
     }
     #[test]
     fn test_heston_init_values() {
