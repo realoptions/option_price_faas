@@ -1,0 +1,230 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\setlength{\parindent}{0cm}
+\newcommand{\eqname}[1]{\tag*{#1}}% Tag equation with name
+
+\section{Model Specification and Background}
+
+We combine the work by \href{http://faculty.baruch.cuny.edu/lwu/papers/timechangeLevy_JFE2004.pdf}{Carr and Wu (2004)} and the work of \href{https://www.darrellduffie.com/uploads/pubs/DuffiePanSingleton2000.pdf}{Duffie, Pan, and Singleton (2000)} to create a very general framework for option pricing.  The fundamental assumption is that the underlying asset follows a Levy process with a stochastic clock.  This assumption is extremely broad.  Many popular models are contained within this assumption including the \href{http://www.ressources-actuarielles.net/EXT/ISFA/1226.nsf/0/306439500f660d9fc12574860059ce30/$FILE/338705.pdf}{CGMY} model, the Heston model, and the Black Scholes model.  The assumption allows us to construct an analytical or semi-analytical characteristic function which can be inverted to obtain option prices.
+
+\subsection{Practical Constraints}
+
+The stochastic clock (which can be interpreted as ``trading time'' as apposed to ``calendar time'') must be positive and increasing.  The work by Carr and Wu shows that one can generate a characteristic function that incorporates correlation between the stochastic clock and the underlying asset as long as the clock and the asset have similar Levy processes.  More precisely, correlation can only be induced if both the clock and the asset have either diffusion processes, finite activity processes, or infinite activity processes.  Since the stochastic clock must always be increasing, it is common to model the stochastic process as an integral of a function of the asset price.  For example, Heston's model can be interpreted as an asset following a Brownian Motion with a clock that follows an integrated Cox Ingersoll Ross (CIR) process, with the asset's Brownian Motion being correlated with the clock's Brownian Motion.  
+\\
+\\
+Unfortunately, for practical considerations, this removes most infinite activity models like the CGMY model from consideration.  For a model such as the CGMY model to be practicable, there would need to be an analytical moment generating function for the integral for a mean-reverting CGMY process.  To the best of our knowledge, no such formula exists.  Of course, there is nothing preventing a model that includes a CGMY process and a diffusion component; but the clock would only be correlated with the diffusion component.  
+\\
+\\
+In a now classic paper, \href{http://www.ressources-actuarielles.net/EXT/ISFA/1226.nsf/0/306439500f660d9fc12574860059ce30/$FILE/338705.pdf}{Carr, Madan, Geman, and Yor (2003)} demonstrate that asset prices may not have a diffusion component and can be modeled as a pure jump process with infinite activity.  However, \href{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.199.2574&rep=rep1&type=pdf}{Wu and Huang (2004)} show that when accounting for the leverage effect, the diffusion component does have a significant impact.  This is due to the empirical fact that asset returns and asset volatility are correlated.  
+\\
+\\
+An excellent overview of the various methods for inducing correlation and the possible models is \href{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.199.2574&rep=rep1&type=pdf}{Wu and Huang (2004)}.  
+
+\subsection{Specification of Stochastic Volatility}
+Following Carr and Wu, we specify the stochastic time change rather than directly specifying the volatility.  The time change is assumed to take the following form: 
+
+\[\tau=\int_0^t v_s ds \]
+\[v_t=v_0 +\int_0^t a(1-k v_s) ds + \int_0^t \eta \sqrt{v_s} dW^2_s + \delta \sum_{j=1}^{N_t} z_j\]
+Where \(N_t\) follows a Poisson process and the \(z_j\) are independent draws from an almost surely positive distribution.  In this paper, we assume \(z_j \sim \mathrm{exp}(q)\) and that it is independent of every other source of randomness.  Following Carr and Wu, we set the parameters such that the long run expectation of \(v_t\) is \(1\).  Since the time change impacts the frequency of jumps linearly, the frequency of jumps can be modeled by \(\lambda v_s\).  Hence to adjust the drift to make the long run expectation of \(v_t\) be \(1\), we adjust the drift as follows: \(a\left(1-\left(\frac{\delta\lambda\mathbb{E}[z_j]}{a}+1\right)v_s\right)\) where for simplicity we let \(k=\frac{\delta\lambda\mathbb{E}[z_j]}{a}+1\).
+
+\subsection{Specification of the Log Asset Price}
+
+The log asset price is assumed to follow one of the following forms:
+
+
+
+\[x_t=\mathrm{log}\left(\frac{S_t}{S_0}\right)=\left(\alpha-\frac{\sigma^2}{2}\right)t+\sigma W^1_t+\sum_{j=1}^{N_t} y_j +\kappa(C, G, M, Y)_t   \]
+
+
+Here \(dW^1_t dW^2_t=\rho dt\), \(N_t\) is a Poisson process, \(y_j\) is assumed to be a Gaussian independent of every other source of randomness, and \(\kappa_t\) is the density of a CGMY process.
+
+\subsection{Risk Neutral Log Asset Price}
+
+Following Carr and Wu, the risk neutral log price can be modeled as follows (note that the market is incomplete):
+\[x_t=\mathrm{log}\left(\frac{S_t}{S_0}\right)=rt-\left(\frac{\sigma^2}{2}+\psi_l(-i)\right)t+\sigma \tilde{W}^1_t+\sum_{j=1}^{N_t} y_j\]
+Where 
+\[\psi_l(u)=\lambda\left(e^{ui\mu_l-\frac{ u^2 \sigma_l^2}{2}}-1\right)+C\Gamma(-Y)\left((M-iu)^Y-M^Y+(G+iu)^Y-G^Y\right)\] is the log of the characteristic function (divided by \(t\)) of the combined Merton and CGMY process.
+
+\subsection{Analytical Characteristic Function}
+
+Following Carr and Wu, the full time changed \(x_\tau\) has the following characteristic function:
+
+\[\phi_x(u)=\mathbb{\hat{E}}\left[ e^{ui rt} e^{\tau \psi(u)} \right]\]
+
+Where 
+\[\psi(u)=-\psi_l(-i)-\frac{\sigma^2}{2} u^2-\left(\frac{\sigma^2}{2}+\psi_l(u)\right)ui \]
+
+
+Under \(\mathbb{\hat{P}}\), \(v_s\) has the following dynamics:
+
+\[v_t=v_0+\int_0 ^ t a\left(1-\left(k-\frac{iu \rho \sigma \eta}{a}\right)v_s\right)ds +\int_0^t \eta \sqrt{v_s} d\hat{W}^2_s + \delta \sum_{j=1}^{\hat{N}_t} z_j\]
+
+Where \(\hat{N}_t\) has jump frequency \(v_s\lambda e^{iu y} \).  By Duffie, Pan, and Singleton (2000), such a characteristic function has a semi-analytical solution.  
+
+\subsection{ODE for Characteristic Function}
+
+\subsubsection{General Case}
+Consider the following functions:
+
+\[\mu(x)=K_0+K_1 x,\, \sigma^2(x)=H_0+H_1 x,\, \lambda(x)=l_0+l_1 x,\, R(x)=\rho_0+\rho_1 x\]
+
+By Duffie, Pan, and Singleton (2000), for processes \(X_t\) defined as 
+\[X_t=X_0+\int _0 ^ t \mu(X_s) ds + \int _0^t \sigma(X_s) dW_s+\sum_j ^ {N_t} Y_j\]
+with jump frequency \(\lambda(X_s)\), the following holds:
+
+\[g(u, x, t, T):=\mathbb{E}\left[e^{-\int_t ^ T R(X_s) ds} e^{cX_T}\right]\]
+
+has solution
+
+\[e^{\alpha(t)+\beta(t) x}\]
+
+where 
+
+\[\beta'(t) = \rho_1- K_1 \beta(t)-\frac{\beta^2(t)H_1}{2}- \int_\Omega l_1 \left(e^{\beta(t) z} -1\right) \mu(dz) \]
+\[\alpha'(t) = \rho_0- K_0 \beta(t)-\frac{\beta^2(t)H_0}{2}-\int_\Omega l_0 \left(e^{\beta(t) z} -1\right) \mu(dz) \]
+
+with \(\beta(T)=c,\,\alpha(T)=0\).
+
+\subsubsection{Application to the Analytical Characteristic Function}
+
+The process \(v_t\) under \(\mathbb{\hat{P}}\) has this same structure with the following parameters:
+
+\[K_0=a,\,K_1=-a\left(k-\frac{iu\rho\sigma\eta}{a}\right)\]
+\[H_0=0,\,H_1=\eta^2\]
+\[l_0=0,\,l_1=\lambda e^{iuy}\]
+\[\rho_0=0,\, \rho_1=-\psi(u) \]
+\[c=0\]
+
+Substituting and simplifying yields the following ODEs:
+\[\beta'(t) = -\psi(u) +\left(a+\delta \lambda-iu\rho\sigma\eta \right) \beta(t)-\frac{\beta^2(t)\eta^2}{2}- \int_\Omega \left(e^{\beta(t)\delta z} -1\right) \lambda e^{iuy} \mu(dz, dy) \]
+\[\alpha'(t) = - a \beta(t) \]
+
+with \(\beta(T)=0,\,\alpha(T)=0\).
+
+\subsubsection{Solution to the ODEs}
+The ODEs do not have an analytical solution, but can be solved numerically using, for example, the Runge Kutta method.  The added complexity of the numerical solution and the fact that it only enhanced the Merton model but not the CGMY or Heston models made us decide to remove the jump correlation and only retain the diffusion correlation.  We still retain the jump aspect of the asset, but do not keep the jump in the clock.  
+
+\section{Final Model}
+
+The final model is specified as follows:
+
+\subsection{Clock}
+
+\[\tau=\int_0^t v_s ds \]
+\[v_t=v_0 +\int_0^t a(1-k v_s) ds + \int_0^t \eta \sqrt{v_s} dW^2_s \]
+This is a CIR process with long run expectation of one.  The CIR bond pricing formula can be interpreted as the moment generating function of the integral of a CIR process, and the analytical expression is leveraged to compute the generalized characteristic function for the time-changed asset price.
+
+
+
+\subsection{Final Characteristic Function}
+
+Following Carr and Wu, the full time changed \(x_\tau\) has the following characteristic function:
+
+\[\phi_x(u)=\mathbb{\hat{E}}\left[ e^{ui rt} e^{\tau \psi(u)} \right]\]
+
+Under \(\mathbb{\hat{P}}\), \(v_s\) has the following dynamics:
+
+\[v_t=v_0+\int_0 ^ t a\left(1-\left(k-\frac{iu \rho \sigma \eta}{a}\right)v_s\right)ds +\int_0^t \eta \sqrt{v_s} d\hat{W}^2_s\]
+
+Since \(\psi\) is deterministic, the characteristic function can be written as follows:
+
+\[\mathbb{E}[e^{ui X_t}]=g(-\psi(u), a, a-\sigma_v \rho u \sigma, \sigma_v, v_0)  \]
+
+Where \(X_t=\mathrm{log}\left(\frac{S_t}{S_0}\right)-rt \), and \(g\) is the moment generating function of an integrated CIR process:
+
+\[g(x, a, \kappa, \sigma_v, v_0)=e^{-b(t)v_0-c(t)}\]
+Where 
+\[b(t)=2x\left(1-e^{-\delta t}\right)/\left(\delta+\kappa+(\delta-\kappa) e^{-\delta t}\right)\]
+\[c(t)=\left(\frac{a}{\sigma^2}\right)\left(2\mathrm{log}\left(1+(\kappa-\delta)\left(1-e^{-\delta t}\right)/2\delta \right) +\left(1-e^{-\delta t}\right)(\kappa-\delta)\right)\]
+\[\delta=\sqrt{\kappa^2+2x \sigma_v^2}\]
+
+
+\section{Methodology for Option Pricing}
+
+The methodology for option pricing uses the \href{http://ta.twi.tudelft.nl/mf/users/oosterle/oosterlee/COS.pdf}{Fang-Oosterlee} framework.  The code is used in the \href{https://github.com/phillyfan1138/fang_oost_option_rust}{fang\_oost\_rust} library.  
+
+\section{Simulation}
+
+To check that our option pricing methodology is implemented appropriately, we perform a Monte Carlo simulation:
+
+<<>>=
+## Set variables
+set.seed(41)
+r=.03
+sig=.2
+sigL=.1
+muL=-.05
+rho=-.5
+lambda=.5 #one jumps every two years on average
+a=.3
+eta=.2
+v0=.9
+s0=50
+k=50
+delta=.1
+n=1000000 #number of options to simulate
+m=1000 #number of items per path
+t=1
+dt=t/(m)
+@
+
+<<echo=FALSE>>=
+## Define helper functions
+simulateGaussJump=function(numJumps){
+  if(numJumps>0){
+    return(sum(rnorm(numJumps, muL, sigL)))
+  }
+  else{
+    return(0)
+  }
+}
+
+generatePricePath=function(m, type){
+  s=s0
+  v=v0
+  w2=rnorm(m)
+  w1=w2*rho+rnorm(m)*sqrt(1-rho*rho)
+  for(j in c(1:m)){
+    numJ=rpois(1, v*lambda*dt)
+    s=s*exp(r*dt-sig*sig*.5*v*dt-lambda*v*dt*(exp(muL+.5*sigL*sigL)-1)+sqrt(abs(v)*dt)*sig*w1[j]+simulateGaussJump(numJ))
+    v=v+a*(1-v)*dt+eta*sqrt(abs(v)*dt)*w2[j]
+  }
+  if(type=='option'){
+    if(s>k){
+      return(s-k)
+    }
+    else{
+      return(0)
+    }
+  }
+  else{
+    return(s)
+  }
+}
+@
+
+<<echo=FALSE>>=
+# Generate option prices and compute bounds
+optionPrices=sapply(c(1:n), function(index){
+  return(generatePricePath(m, 'option'))
+})
+price=exp(-r*t)*mean(optionPrices)
+bounds=qnorm(.95)*sd(optionPrices)/sqrt(n-1)
+priceLow=price-bounds
+priceHigh=price+bounds
+@
+
+<<>>=
+## Results
+print(priceLow)
+print(priceHigh)
+@
+
+This simulation creates bounds that are used to ensure that the numerical implementation of the characteristic function is accurate.  For more details, see the integration tests inside the \href{https://github.com/realoptions/option_price_faas/blob/d65bd18faedd696a2112f9dd2244cb78d03cca7d/src/lib/maps.rs#L848}{option\_price\_faas} repo.  
+
+
+\end{document}

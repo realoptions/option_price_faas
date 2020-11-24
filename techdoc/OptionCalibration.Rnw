@@ -1,0 +1,96 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{hyperref} 
+\begin{document}
+\section{Option Calibration}
+\setlength{\parindent}{0cm}
+
+The problem of calibrating option prices to market values (the ``inverse problem'') is non-trivial especially with complex pricing models with many parameters.  A naive approach is to perform optimization by minimizing a distance between the prices provided by the market and the modeled prices by varying the input parameters.  However, this can be computationally intensive.  The problem is not convex and there may be a plethora of local minima. The parameter surface may have many ``flat'' areas leading to unstable parameter solutions.  
+\\
+\\
+In our study, we focus on calibrating models defined in the \href{https://github.com/realoptions/option_price_faas/tree/master/techdoc}{Option Calculation} paper.  We use a Heston model, a jump-diffusion a la \href{http://www.people.hbs.edu/rmerton/optionpricingwhenunderlingstock.pdf}{Merton (1976)}, and a CGMY model.  
+\\
+\\
+The code which runs the results shown below is available at the following Github repo: \href{https://github.com/realoptions/option_price_faas}{Option Price Functions}.  
+
+\section{Calibration}
+
+Calibration has traditionally taken the following form:
+
+\[\min_\theta \sum_k w_k \left(C_k-C(k; \theta)\right)^2 \]
+Where \(w_k\) is a weight, \(\theta\) are the parameters describing the (risk-neutral) asset process, \(C_k\) is the observed option prices at log-strike \(k\), and \(C(k, \theta)\) is the modeled price.  Following \href{https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.377.2222&rep=rep1&type=pdf}{Chen Bin}, we choose \(w_k=w=\frac{50}{\sum_i C_i^2)}\).
+\\
+\\
+As mentioned in the introduction, this optimization problem is not trivial.  See \href{http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=E58EF2375731921D342B8965E1AA18C9?doi=10.1.1.155.662&rep=rep1&type=pdf}{Cont and Tankov (2006)} for details.  We use the Nelder-Mead algorithm and choose various starting parameters to find a global minimum.  This works well in practice, as the following optimization attests.  Code to generate these tables is \href{https://github.com/realoptions/option_price_faas/tree/master/src/bin/generate_docs.rs}{here}
+
+\subsection{Results}
+
+\subsubsection{Heston}
+
+<<echo=FALSE, message=FALSE>>=
+require(jsonlite)
+library(xtable)
+library(knitr)
+options(digits=4)
+base='./'
+@
+
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+actual=fromJSON(readLines(paste0(base, 'techdoc_heston_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_heston.json')))
+@
+
+\begin{table}[ht]
+\centering
+\caption{Heston Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  & $\eta$ & speed  & $\sigma $ & $\rho$ \\
+ Actual & \Sexpr{actual$eta_v} & \Sexpr{actual$speed} & \Sexpr{actual$sigma} & \Sexpr{actual$rho} \\ 
+  Estimate & \Sexpr{estimates$eta_v} & \Sexpr{estimates$speed} & \Sexpr{estimates$sigma} & \Sexpr{estimates$rho} \\ 
+\end{tabular}
+\endgroup
+\end{table}
+
+\subsubsection{Merton}
+
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+actual=fromJSON(readLines(paste0(base, 'techdoc_merton_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_merton.json')))
+@
+
+\begin{table}[ht]
+\centering
+\caption{Merton Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  & $\lambda$ & $\mu_l$  &  $\sigma_l$ &  $\sigma $ \\
+ Actual & \Sexpr{actual$lambda} & \Sexpr{actual$mu_l} & \Sexpr{actual$sig_l} & \Sexpr{actual$sigma} \\ 
+  Estimate & \Sexpr{estimates$lambda} & \Sexpr{estimates$mu_l} & \Sexpr{estimates$sig_l} & \Sexpr{estimates$sigma} \\ 
+\end{tabular}
+\endgroup
+\end{table}
+
+\subsubsection{CGMY}
+
+<<echo=FALSE, message=FALSE, warning=FALSE, include=FALSE>>=
+actual=fromJSON(readLines(paste0(base, 'techdoc_cgmy_actual.json')))
+estimates=fromJSON(readLines(paste0(base, 'techdoc_cgmy.json')))
+@
+
+\begin{table}[ht]
+\centering
+\caption{CGMY Comparison} 
+\label{Test_table}
+\begingroup\footnotesize
+\begin{tabular}{lrrrr}
+  & c & g  &  m   & y  \\
+ Actual & \Sexpr{actual$c} & \Sexpr{actual$g} & \Sexpr{actual$m} & \Sexpr{actual$y} \\ 
+  Estimate & \Sexpr{estimates$c} & \Sexpr{estimates$g} & \Sexpr{estimates$m} & \Sexpr{estimates$y}  \\ 
+\end{tabular}
+\endgroup
+\end{table}
+
+\end{document}

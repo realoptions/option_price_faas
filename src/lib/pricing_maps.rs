@@ -762,6 +762,7 @@ mod tests {
     #[test]
     fn test_monte_carlo() {
         //https://github.com/phillyfan1138/fang_oost_cal_charts/blob/master/docs/OptionCalculation.Rnw
+        // ../../techdoc/OptionCalculation.Rnw
         let parameters = MertonParameters {
             sigma: 0.2,
             lambda: 0.5,

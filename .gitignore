@@ -13,3 +13,6 @@ grcov
 terraform.tfstate*
 build_image.sh
 service.json
+*.tex
+*.gz
+*.aux
