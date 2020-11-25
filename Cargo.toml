@@ -59,3 +59,6 @@ path = "src/lib/lib.rs"
 [[bench]]
 name = "option_price_bench_faas"
 harness = false
+
+[profile.bench]
+lto = true

@@ -25,7 +25,7 @@ There are documents in the [technical documentation](./techdoc) folder.
 
 To generate the needed json files, build the project `cargo build --release`, then run `node index`.  Open [OptionCalibration](./docs/OptionCalibration.rnw) in a Sweave/Latex editor (eg RStudio) and compile.
 
-
+#RUSTFLAGS='-L my/lib/location' cargo build
 
 ### Run functions locally
 
