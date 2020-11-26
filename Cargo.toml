@@ -42,23 +42,23 @@ codecov = { repository = "realoptions/option_price_faas", branch = "master", ser
 [[bin]]
 name = "option_price"
 path = "src/bin/option_price.rs"
+bench = false
 
 [[bin]]
 name = "option_price_auth"
 path = "src/bin/option_price_auth.rs"
+bench = false
 
 [[bin]]
 name = "generate_docs"
 path = "src/bin/generate_docs.rs"
+bench = false
 
 [lib]
 name = "utils"
 path = "src/lib/lib.rs"
-
+bench = false
 
 [[bench]]
 name = "option_price_bench_faas"
 harness = false
-
-[profile.bench]
-lto = true
