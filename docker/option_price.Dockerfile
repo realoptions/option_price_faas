@@ -1,18 +1,27 @@
+ARG MAJOR_VERSION
+ARG BINARY
+
 FROM rustlang/rust:nightly-slim AS build
-RUN rustup target add x86_64-unknown-linux-musl
+RUN apt-get update
+RUN apt-get install -y cmake
+RUN apt-get install -y musl-tools
+RUN apt-get install -y build-essential
 WORKDIR /usr/src/optionprice
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-RUN cargo install --target x86_64-unknown-linux-musl --path .
+RUN cargo install --target x86_64-unknown-linux-gnu --path .
+
 ARG MAJOR_VERSION
+ARG BINARY
 
-FROM scratch
-
+FROM gcr.io/distroless/cc-debian10
+ARG MAJOR_VERSION
+ARG BINARY
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
 ENV PORT 8080
 ENV MAJOR_VERSION=$MAJOR_VERSION
-COPY --from=build /usr/src/optionprice/target/x86_64-unknown-linux-musl/release/option_price .
-USER 1000
+COPY --from=build --chown=1001:1001 /usr/src/optionprice/target/x86_64-unknown-linux-gnu/release/$BINARY ./optionprice
+USER 1001
 # Run the web service on container startup.
-CMD ["/option_price"]
+CMD ["./optionprice"]

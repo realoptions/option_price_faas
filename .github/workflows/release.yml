@@ -40,9 +40,9 @@ jobs:
     - name: Build
       run: |
         cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
-        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA --build-arg BINARY=option_price --build-arg MAJOR_VERSION=$MAJOR_VERSION
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
-        docker build . -f docker/option_price_auth.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA
+        docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA --build-arg BINARY=option_price_auth --build-arg MAJOR_VERSION=$MAJOR_VERSION
         docker push gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA
 
     - name: terraform 
