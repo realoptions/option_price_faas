@@ -9,6 +9,8 @@ jobs:
     - uses: hecrj/setup-rust-action@v1
       with:
         rust-version: nightly
+    - name: Fetch all branches
+      run: git fetch --all
     - uses: boa-dev/criterion-compare-action@v2.0.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
