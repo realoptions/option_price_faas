@@ -1,7 +1,7 @@
 'use strict'
 const fetch = require('node-fetch')
 const { location } = require('./binaryLocation.json')
-const body = require('./example_calibration_2.json')
+const body = require('./example_calibration_3.json')
 const { spawn } = require('child_process')
 const port = '8090'
 const version = 'v2'
@@ -14,6 +14,7 @@ const get_price = (port, model) => {
     ).then(res => res.json()).then(response => {
         console.log("This is model " + model)
         console.log(response.parameters)
+        console.log(response.final_cost_value)
     })
 }
 setTimeout(() => {
