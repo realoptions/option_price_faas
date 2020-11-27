@@ -2488,8 +2488,8 @@ paths:
             - option_data
           additionalProperties: false
           example:
-            rate: 0.01
-            asset: 179.0
+            rate: 0.0
+            asset: 178.46
             num_u: 8
             option_data: 
               - maturity: 1.0
@@ -2610,8 +2610,8 @@ paths:
             - option_data
           additionalProperties: false
           example:
-            rate: 0.01
-            asset: 179.0
+            rate: 0.0
+            asset: 178.46
             num_u: 8
             option_data: 
               - maturity: 1.0
@@ -2723,8 +2723,8 @@ paths:
             - option_data
           additionalProperties: false
           example:
-            rate: 0.01
-            asset: 179.0
+            rate: 0.0
+            asset: 178.46
             num_u: 8
             option_data: 
               - maturity: 1.0
