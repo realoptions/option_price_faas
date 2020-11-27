@@ -200,7 +200,7 @@ paths:
         at every strike price for an asset that follows a Heston process
       responses:
         '200':
-          description: Option prices and sensitivites
+          description: Option prices and sensitivities
           schema:
             type: array
             items:
@@ -339,7 +339,7 @@ paths:
         at every strike price for an asset that follows an extended Merton process
       responses:
         '200':
-          description: Option prices and sensitivites
+          description: Option prices and sensitivities
           schema:
             type: array
             items:
