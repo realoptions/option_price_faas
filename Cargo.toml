@@ -35,6 +35,7 @@ features = ["json"]
 [dev-dependencies]
 approx = "0.2.0"
 criterion = "0.3"
+tinytemplate = "1.2.1"
 
 [badges]
 codecov = { repository = "realoptions/option_price_faas", branch = "master", service = "github" }
