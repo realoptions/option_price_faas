@@ -42,6 +42,8 @@ security:
 paths:
   "/cgmy/calculator/{optionType}/{sensitivity}":
     post:
+      consumes:
+      - application/json
       operationId: computeCGMYOptions
       summary: Calculator for computing option prices and sensitivities for a CGMY
         process
@@ -193,6 +195,8 @@ paths:
           additionalProperties: false
   "/heston/calculator/{optionType}/{sensitivity}":
     post:
+      consumes:
+      - application/json
       operationId: computeHestonOptions
       summary: Calculator for computing option prices and sensitivities for a Heston
         model
@@ -332,6 +336,8 @@ paths:
           additionalProperties: false
   "/merton/calculator/{optionType}/{sensitivity}":
     post:
+      consumes:
+      - application/json
       operationId: computeMertonOptions
       summary: Calculator for computing option prices and sensitivities for a Merton
         model
@@ -480,6 +486,8 @@ paths:
           additionalProperties: false
   "/cgmy/density":
     post:
+      consumes:
+      - application/json
       operationId: computeCGMYDensity
       summary: Calculator for computing probability densities for CGMY process
       description: Computes probability density for an extended CGMY process
@@ -819,6 +827,8 @@ paths:
           additionalProperties: false
   "/heston/density":
     post:
+      consumes:
+      - application/json
       operationId: computeHestonDensity
       summary: Calculator for computing probability densities for Heston model
       description: Computes probability density for a Heston model
@@ -1146,6 +1156,8 @@ paths:
           additionalProperties: false
   "/merton/density":
     post:
+      consumes:
+      - application/json
       operationId: computeMertonDensity
       summary: Calculator for computing probability densities for Merton model
       description: Computes probability density for a Merton model
@@ -1482,6 +1494,8 @@ paths:
           additionalProperties: false
   "/cgmy/riskmetric":
     post:
+      consumes:
+      - application/json
       operationId: computeCGMYMetric
       summary: Calculator for computing risk metrics for CGMY process
       description: Computes value at risk and expected shortfall for extended CGMY
@@ -1569,6 +1583,8 @@ paths:
           additionalProperties: false
   "/heston/riskmetric":
     post:
+      consumes:
+      - application/json
       operationId: computeHestonMetric
       summary: Calculator for computing risk metrics for Heston model
       description: Computes value at risk and expected shortfall for a Heston model
@@ -1644,6 +1660,8 @@ paths:
           additionalProperties: false
   "/merton/riskmetric":
     post:
+      consumes:
+      - application/json
       operationId: computeMertonMetric
       summary: Calculator for computing risk metrics for Merton model
       description: Computes value at risk and expected shortfall for an extended Merton

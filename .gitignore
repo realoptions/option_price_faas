@@ -16,3 +16,4 @@ service.json
 *.tex
 *.gz
 *.aux
+nohup.out

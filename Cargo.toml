@@ -21,14 +21,14 @@ rayon = "1.5"
 black_scholes = "0.5.0"
 cf_functions = "0.14"
 num-complex = "0.2"
-rocket = "0.4.5"
+rocket = "0.4.7"
 sha2 = "0.9.1"
 hex-literal = "0.3.1"
 rand = "0.5"
 nlopt= "0.5.2"
 
 [dependencies.rocket_contrib]
-version = "0.4.5"
+version = "0.4.7"
 default-features = false
 features = ["json"]
 
