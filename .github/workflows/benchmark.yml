@@ -11,8 +11,6 @@ jobs:
         rust-version: nightly
     - name: Fetch all branches
       run: git fetch --all
-    - name: update dependencies
-      run: cargo update
     - uses: boa-dev/criterion-compare-action@v2.0.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
