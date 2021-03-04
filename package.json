@@ -16,20 +16,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phillyfan1138/option_price_faas.git"
+    "url": "git+https://github.com/realoptions/option_price_faas.git"
   },
   "author": "Daniel Stahl",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/phillyfan1138/option_price_faas/issues"
+    "url": "https://github.com/realoptions/option_price_faas/issues"
   },
-  "homepage": "https://github.com/phillyfan1138/option_price_faas#readme",
+  "homepage": "https://github.com/realoptions/option_price_faas#readme",
   "devDependencies": {
     "husky": "^4.2.3",
     "jest": "^25.1.0",
-    "node-fetch": "^2.6.1",
     "js-yaml": "^3.14.0",
+    "node-fetch": "^2.6.1",
     "swagger-parser": "^10.0.2"
-  },
-  "dependencies": {}
+  }
 }
