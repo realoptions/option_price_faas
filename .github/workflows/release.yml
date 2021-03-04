@@ -67,6 +67,7 @@ jobs:
       run: |
         npm ci
         node ./tests/swagger_validator
+        ./tests/integration_test.sh
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0
