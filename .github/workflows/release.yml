@@ -65,6 +65,7 @@ jobs:
 
     - name: validate swagger
       run: |
+        cargo build --release
         npm ci
         node ./tests/swagger_validator
         ./tests/integration_test.sh
