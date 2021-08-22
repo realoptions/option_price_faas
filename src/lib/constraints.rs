@@ -1,6 +1,7 @@
 use fang_oost_option::option_calibration::OptionDataMaturity;
 use rocket::response::Responder;
-use rocket_contrib::json::{JsonError, JsonValue};
+use rocket::serde::json::{json, Error as JsonError, Value};
+use rocket::tokio::task::JoinError;
 use serde_derive::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
@@ -16,7 +17,7 @@ pub enum ErrorType {
 #[derive(Debug, PartialEq, Responder, Serialize)]
 #[response(status = 400, content_type = "json")]
 pub struct ParameterError {
-    msg: JsonValue,
+    msg: Value,
 }
 
 impl ParameterError {
@@ -42,6 +43,12 @@ impl ParameterError {
 impl From<cf_dist_utils::ValueAtRiskError> for ParameterError {
     fn from(error: cf_dist_utils::ValueAtRiskError) -> ParameterError {
         ParameterError::new(&ErrorType::ValueAtRiskError(error.to_string()))
+    }
+}
+
+impl From<JoinError> for ParameterError {
+    fn from(error: JoinError) -> ParameterError {
+        ParameterError::new(&ErrorType::JsonError(error.to_string()))
     }
 }
 

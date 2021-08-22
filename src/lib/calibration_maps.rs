@@ -224,10 +224,9 @@ fn cgmy_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64
         let g = params[1];
         let m = params[2];
         let y = params[3];
-        //let sigma = params[4];
-
         let vol = cf_functions::cgmy::cgmy_diffusion_vol(CGMY_SIGMA, c, g, m, y, maturity);
         crate::pricing_maps::get_max_strike(asset, option_scale, vol)
+        //let sigma = params[4];
     }
 }
 fn merton_max_strike(asset: f64, option_scale: f64) -> impl Fn(&[f64], f64) -> f64 + Sync {

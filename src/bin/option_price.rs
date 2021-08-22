@@ -1,22 +1,18 @@
-#![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use]
 extern crate rocket;
-#[macro_use]
-extern crate rocket_contrib;
-use rocket::config::{Config, Environment};
-use rocket::http::RawStr;
-use rocket_contrib::json::{Json, JsonError, JsonValue};
+use rocket::serde::json::Json;
+use rocket::serde::json::{json, Value};
 use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
-use utils::{calibration_maps, constraints, pricing_maps};
-
+use rocket::tokio::task;
+use utils::{calibration_maps, constants, constraints, pricing_maps};
 #[get("/<model>/parameters/parameter_ranges")]
-pub fn parameters(model: &RawStr) -> JsonValue {
-    match model.as_str() {
-        "heston" => json!(constraints::HESTON_CONSTRAINTS),
-        "cgmy" => json!(constraints::CGMY_CONSTRAINTS),
-        "merton" => json!(constraints::MERTON_CONSTRAINTS),
+pub async fn parameters(model: &str) -> Value {
+    match model {
+        constants::HESTON_NAME => json!(constraints::HESTON_CONSTRAINTS),
+        constants::CGMY_NAME => json!(constraints::CGMY_CONSTRAINTS),
+        constants::MERTON_NAME => json!(constraints::MERTON_CONSTRAINTS),
         _ => json!(constraints::PARAMETER_CONSTRAINTS),
     }
 }
@@ -25,14 +21,13 @@ pub fn parameters(model: &RawStr) -> JsonValue {
     "/<_model>/calculator/<option_type>/<sensitivity>?<include_implied_volatility>",
     data = "<parameters>"
 )]
-pub fn calculator(
-    _model: &RawStr,
-    option_type: &RawStr,
-    sensitivity: &RawStr,
-    parameters: Result<Json<constraints::OptionParameters>, JsonError>,
+pub async fn calculator(
+    _model: &str,
+    option_type: &str,
+    sensitivity: &str,
+    parameters: Json<constraints::OptionParameters>,
     include_implied_volatility: Option<bool>,
-) -> Result<JsonValue, constraints::ParameterError> {
-    let parameters = parameters?;
+) -> Result<Json<Vec<pricing_maps::GraphElement>>, constraints::ParameterError> {
     let fn_indicator = pricing_maps::get_fn_indicators(option_type, sensitivity)?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
     let constraints::OptionParameters {
@@ -50,26 +45,33 @@ pub fn calculator(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
     let include_iv = include_implied_volatility.unwrap_or(false);
-    let results = pricing_maps::get_option_results_as_json(
-        fn_indicator,
-        include_iv,
-        &cf_parameters,
-        OPTION_SCALE,
-        num_u,
-        asset_unwrap,
-        maturity,
-        rate,
-        &strikes_unwrap,
-    )?;
-    Ok(json!(results))
+    let result = task::spawn_blocking(move || {
+        //let parameters = parameters?;
+        pricing_maps::get_option_results_as_json(
+            fn_indicator,
+            include_iv,
+            &cf_parameters,
+            OPTION_SCALE,
+            num_u,
+            asset_unwrap,
+            maturity,
+            rate,
+            &strikes_unwrap,
+        )
+    })
+    .await??;
+    //.unwrap()?;
+
+    //Ok(result)
+    Ok(Json(result))
 }
 
 #[post("/<_model>/density", data = "<parameters>")]
 pub fn density(
-    _model: &RawStr,
-    parameters: Result<Json<constraints::OptionParameters>, JsonError>,
-) -> Result<JsonValue, constraints::ParameterError> {
-    let parameters = parameters?;
+    _model: &str,
+    parameters: Json<constraints::OptionParameters>,
+) -> Result<Json<Vec<pricing_maps::GraphElement>>, constraints::ParameterError> {
+    //let parameters = parameters?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
@@ -90,14 +92,14 @@ pub fn density(
         rate,
     )?;
 
-    Ok(json!(results))
+    Ok(Json(results))
 }
 #[post("/<model>/calibrator/call", data = "<calibration_parameters>")]
 pub fn calibrator(
-    model: &RawStr,
-    calibration_parameters: Result<Json<constraints::CalibrationParameters>, JsonError>,
-) -> Result<JsonValue, constraints::ParameterError> {
-    let calibration_parameters = calibration_parameters?;
+    model: &str,
+    calibration_parameters: Json<constraints::CalibrationParameters>,
+) -> Result<Json<constraints::CalibrationResponse>, constraints::ParameterError> {
+    //let calibration_parameters = calibration_parameters?;
     let constraints::CalibrationParameters {
         rate,
         asset,
@@ -116,14 +118,14 @@ pub fn calibrator(
         asset,
         rate,
     )?;
-    Ok(json!(results))
+    Ok(Json(results))
 }
 #[post("/<_model>/riskmetric", data = "<parameters>")]
 pub fn risk_metric(
-    _model: &RawStr,
-    parameters: Result<Json<constraints::OptionParameters>, JsonError>,
-) -> Result<JsonValue, constraints::ParameterError> {
-    let parameters = parameters?;
+    _model: &str,
+    parameters: Json<constraints::OptionParameters>,
+) -> Result<Json<cf_dist_utils::RiskMetric>, constraints::ParameterError> {
+    //let parameters = parameters?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
@@ -146,23 +148,14 @@ pub fn risk_metric(
         quantile_unwrap,
     )?;
 
-    Ok(json!(results))
+    Ok(Json(results))
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let port_str = env::var("PORT")?;
-    let mount_point = env::var("MAJOR_VERSION")?;
-    let port = port_str.parse::<u16>()?;
-    let config = Config::build(Environment::Production)
-        .address("0.0.0.0")
-        .port(port)
-        .finalize()?;
-    rocket::custom(config)
-        .mount(
-            format!("/{}", mount_point.as_str()).as_str(),
-            routes![parameters, calculator, calibrator, density, risk_metric],
-        )
-        .launch();
-
-    Ok(())
+#[launch]
+fn rocket() -> _ {
+    let mount_point = env::var("MAJOR_VERSION").unwrap();
+    rocket::build().mount(
+        format!("/{}", mount_point.as_str()).as_str(),
+        routes![parameters, calculator, calibrator, density, risk_metric],
+    )
 }

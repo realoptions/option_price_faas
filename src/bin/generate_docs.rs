@@ -1,6 +1,5 @@
 use fang_oost_option::option_calibration::{OptionData, OptionDataMaturity};
-#[macro_use]
-extern crate rocket_contrib;
+use rocket::serde::json::json;
 use std::fs::File;
 use std::io::prelude::*;
 use utils::calibration_maps::get_option_calibration_results_as_json;
