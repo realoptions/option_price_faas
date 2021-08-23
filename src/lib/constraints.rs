@@ -14,6 +14,7 @@ pub enum ErrorType {
     JsonError(String),
     OptimizationError(String),
 }
+
 #[derive(Debug, PartialEq, Responder, Serialize)]
 #[response(status = 400, content_type = "json")]
 pub struct ParameterError {

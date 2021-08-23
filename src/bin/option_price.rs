@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 use rocket::serde::json::Json;
-use rocket::serde::json::{json, Value};
+use rocket::serde::json::{json, Error as JsonError, Value};
 use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
@@ -18,16 +18,16 @@ pub async fn parameters(model: &str) -> Value {
 }
 
 #[post(
-    "/<_model>/calculator/<option_type>/<sensitivity>?<include_implied_volatility>",
+    "/<_>/calculator/<option_type>/<sensitivity>?<include_implied_volatility>",
     data = "<parameters>"
 )]
 pub async fn calculator(
-    _model: &str,
     option_type: &str,
     sensitivity: &str,
-    parameters: Json<constraints::OptionParameters>,
+    parameters: Result<Json<constraints::OptionParameters>, JsonError<'_>>,
     include_implied_volatility: Option<bool>,
 ) -> Result<Json<Vec<pricing_maps::GraphElement>>, constraints::ParameterError> {
+    let parameters = parameters?;
     let fn_indicator = pricing_maps::get_fn_indicators(option_type, sensitivity)?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
     let constraints::OptionParameters {
@@ -45,8 +45,7 @@ pub async fn calculator(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
     let include_iv = include_implied_volatility.unwrap_or(false);
-    let result = task::spawn_blocking(move || {
-        //let parameters = parameters?;
+    let results = task::spawn_blocking(move || {
         pricing_maps::get_option_results_as_json(
             fn_indicator,
             include_iv,
@@ -60,18 +59,14 @@ pub async fn calculator(
         )
     })
     .await??;
-    //.unwrap()?;
-
-    //Ok(result)
-    Ok(Json(result))
+    Ok(Json(results))
 }
 
-#[post("/<_model>/density", data = "<parameters>")]
-pub fn density(
-    _model: &str,
-    parameters: Json<constraints::OptionParameters>,
+#[post("/<_>/density", data = "<parameters>")]
+pub async fn density(
+    parameters: Result<Json<constraints::OptionParameters>, JsonError<'_>>,
 ) -> Result<Json<Vec<pricing_maps::GraphElement>>, constraints::ParameterError> {
-    //let parameters = parameters?;
+    let parameters = parameters?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
@@ -83,23 +78,25 @@ pub fn density(
     } = parameters.into_inner(); //destructure
 
     let num_u = (2 as usize).pow(num_u_base as u32);
-
-    let results = pricing_maps::get_density_results_as_json(
-        &cf_parameters,
-        DENSITY_SCALE,
-        num_u,
-        maturity,
-        rate,
-    )?;
+    let results = task::spawn_blocking(move || {
+        pricing_maps::get_density_results_as_json(
+            &cf_parameters,
+            DENSITY_SCALE,
+            num_u,
+            maturity,
+            rate,
+        )
+    })
+    .await??;
 
     Ok(Json(results))
 }
 #[post("/<model>/calibrator/call", data = "<calibration_parameters>")]
-pub fn calibrator(
+pub async fn calibrator(
     model: &str,
-    calibration_parameters: Json<constraints::CalibrationParameters>,
+    calibration_parameters: Result<Json<constraints::CalibrationParameters>, JsonError<'_>>,
 ) -> Result<Json<constraints::CalibrationResponse>, constraints::ParameterError> {
-    //let calibration_parameters = calibration_parameters?;
+    let calibration_parameters = calibration_parameters?;
     let constraints::CalibrationParameters {
         rate,
         asset,
@@ -109,23 +106,25 @@ pub fn calibrator(
     let model_indicator = calibration_maps::get_model_indicators(model)?;
     let num_iter = calibration_maps::get_num_iter(model)?;
     let num_u = (2 as usize).pow(num_u_base as u32);
-    let results = calibration_maps::get_option_calibration_results_as_json(
-        model_indicator,
-        &option_data,
-        OPTION_SCALE,
-        num_iter,
-        num_u,
-        asset,
-        rate,
-    )?;
+    let results = task::spawn_blocking(move || {
+        calibration_maps::get_option_calibration_results_as_json(
+            model_indicator,
+            &option_data,
+            OPTION_SCALE,
+            num_iter,
+            num_u,
+            asset,
+            rate,
+        )
+    })
+    .await??;
     Ok(Json(results))
 }
-#[post("/<_model>/riskmetric", data = "<parameters>")]
-pub fn risk_metric(
-    _model: &str,
-    parameters: Json<constraints::OptionParameters>,
+#[post("/<_>/riskmetric", data = "<parameters>")]
+pub async fn risk_metric(
+    parameters: Result<Json<constraints::OptionParameters>, JsonError<'_>>,
 ) -> Result<Json<cf_dist_utils::RiskMetric>, constraints::ParameterError> {
-    //let parameters = parameters?;
+    let parameters = parameters?;
     constraints::check_parameters(&parameters, &constraints::PARAMETER_CONSTRAINTS)?;
 
     let constraints::OptionParameters {
@@ -139,14 +138,17 @@ pub fn risk_metric(
 
     let num_u = (2 as usize).pow(num_u_base as u32);
     let quantile_unwrap = quantile.ok_or(constraints::throw_no_exist_error("quantile"))?;
-    let results = pricing_maps::get_risk_measure_results_as_json(
-        &cf_parameters,
-        DENSITY_SCALE,
-        num_u,
-        maturity,
-        rate,
-        quantile_unwrap,
-    )?;
+    let results = task::spawn_blocking(move || {
+        pricing_maps::get_risk_measure_results_as_json(
+            &cf_parameters,
+            DENSITY_SCALE,
+            num_u,
+            maturity,
+            rate,
+            quantile_unwrap,
+        )
+    })
+    .await??;
 
     Ok(Json(results))
 }
