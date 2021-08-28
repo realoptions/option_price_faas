@@ -6,7 +6,7 @@ use std::env;
 const OPTION_SCALE: f64 = 10.0;
 const DENSITY_SCALE: f64 = 5.0;
 use rocket::tokio::task;
-use utils::{calibration_maps, constants, constraints, pricing_maps};
+use utils::{constants, constraints, pricing_maps};
 #[get("/<model>/parameters/parameter_ranges")]
 pub async fn parameters(model: &str) -> Value {
     match model {
@@ -91,6 +91,7 @@ pub async fn density(
 
     Ok(Json(results))
 }
+/*
 #[post("/<model>/calibrator/call", data = "<calibration_parameters>")]
 pub async fn calibrator(
     model: &str,
@@ -119,7 +120,7 @@ pub async fn calibrator(
     })
     .await??;
     Ok(Json(results))
-}
+}*/
 #[post("/<_>/riskmetric", data = "<parameters>")]
 pub async fn risk_metric(
     parameters: Result<Json<constraints::OptionParameters>, JsonError<'_>>,
@@ -158,6 +159,6 @@ fn rocket() -> _ {
     let mount_point = env::var("MAJOR_VERSION").unwrap();
     rocket::build().mount(
         format!("/{}", mount_point.as_str()).as_str(),
-        routes![parameters, calculator, calibrator, density, risk_metric],
+        routes![parameters, calculator, density, risk_metric],
     )
 }

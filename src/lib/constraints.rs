@@ -52,7 +52,7 @@ impl From<JoinError> for ParameterError {
         ParameterError::new(&ErrorType::JsonError(error.to_string()))
     }
 }
-
+/*
 impl From<nlopt::FailState> for ParameterError {
     fn from(error: nlopt::FailState) -> ParameterError {
         match error {
@@ -73,7 +73,7 @@ impl From<nlopt::FailState> for ParameterError {
             ),
         }
     }
-}
+}*/
 
 impl From<JsonError<'_>> for ParameterError {
     fn from(error: JsonError) -> ParameterError {

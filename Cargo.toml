@@ -17,9 +17,8 @@ cf_functions = "0.14"
 fang_oost = "0.14"
 fang_oost_option = "0.31"
 hex-literal = "0.3.1"
-nlopt = "0.5.2"
+# nlopt = "0.5.2"
 num-complex = "0.2"
-rand = "0.5"
 rayon = "1.5"
 rocket = {version = "0.5.0-rc.1", features = ["json"]}
 serde = "^1"
@@ -30,6 +29,7 @@ sha2 = "0.9.1"
 [dev-dependencies]
 approx = "0.2.0"
 criterion = "0.3"
+rand = {version = "0.8", features = ["std_rng"]}
 
 [badges]
 codecov = {repository = "realoptions/option_price_faas", branch = "master", service = "github"}
@@ -43,11 +43,6 @@ path = "src/bin/option_price.rs"
 bench = false
 name = "option_price_auth"
 path = "src/bin/option_price_auth.rs"
-
-[[bin]]
-bench = false
-name = "generate_docs"
-path = "src/bin/generate_docs.rs"
 
 [lib]
 bench = false
