@@ -1,7 +1,6 @@
 use hex_literal::hex;
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
-use rocket::Outcome;
 use sha2::{Digest, Sha256};
 use std::str;
 pub struct ApiKey(String);
@@ -19,17 +18,18 @@ pub enum ApiKeyError {
     Invalid,
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for ApiKey {
     type Error = ApiKeyError;
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("X-RapidAPI-Proxy-Secret").collect();
         println!("{}", keys[0]);
         match keys.len() {
-            0 => Outcome::Failure((Status::BadRequest, ApiKeyError::Missing)),
-            1 if is_valid(keys[0]) => Outcome::Success(ApiKey(keys[0].to_string())),
-            1 => Outcome::Failure((Status::Forbidden, ApiKeyError::Invalid)),
-            _ => Outcome::Failure((Status::BadRequest, ApiKeyError::BadCount)),
+            0 => request::Outcome::Failure((Status::BadRequest, ApiKeyError::Missing)),
+            1 if is_valid(keys[0]) => request::Outcome::Success(ApiKey(keys[0].to_string())),
+            1 => request::Outcome::Failure((Status::Forbidden, ApiKeyError::Invalid)),
+            _ => request::Outcome::Failure((Status::BadRequest, ApiKeyError::BadCount)),
         }
     }
 }

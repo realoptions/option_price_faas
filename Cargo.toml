@@ -1,64 +1,54 @@
 [package]
-name = "pricer"
-version = "3.0.0"
 authors = ["Daniel Stahl <danstahl1138@gmail.com>"]
-homepage = "https://github.com/realoptions/option_price_faas"
-repository = "https://github.com/realoptions/option_price_faas"
-readme = "README.md"
-license = "MIT"
-description = "Option pricer"
 autobins = false
+description = "Option pricer"
 edition = "2018"
+homepage = "https://github.com/realoptions/option_price_faas"
+license = "MIT"
+name = "pricer"
+readme = "README.md"
+repository = "https://github.com/realoptions/option_price_faas"
+version = "3.0.0"
 
 [dependencies]
-fang_oost_option = "0.31"
-fang_oost = "0.14"
-serde = "^1"
-serde_json = "^1"
-serde_derive = "^1"
-cf_dist_utils = "0.9.0"
-rayon = "1.5"
 black_scholes = "0.5.0"
+cf_dist_utils = "0.9.0"
 cf_functions = "0.14"
-num-complex = "0.2"
-rocket = "0.4.7"
-sha2 = "0.9.1"
+fang_oost = "0.14"
+fang_oost_option = "0.31"
 hex-literal = "0.3.1"
-rand = "0.5"
-nlopt= "0.5.2"
-
-[dependencies.rocket_contrib]
-version = "0.4.7"
-default-features = false
-features = ["json"]
+# nlopt = "0.5.2"
+num-complex = "0.2"
+rayon = "1.5"
+rocket = {version = "0.5.0-rc.1", features = ["json"]}
+serde = "^1"
+serde_derive = "^1"
+serde_json = "^1"
+sha2 = "0.9.1"
 
 [dev-dependencies]
 approx = "0.2.0"
 criterion = "0.3"
+rand = {version = "0.8", features = ["std_rng"]}
 
 [badges]
-codecov = { repository = "realoptions/option_price_faas", branch = "master", service = "github" }
+codecov = {repository = "realoptions/option_price_faas", branch = "master", service = "github"}
 
 [[bin]]
+bench = false
 name = "option_price"
 path = "src/bin/option_price.rs"
-bench = false
 
 [[bin]]
+bench = false
 name = "option_price_auth"
 path = "src/bin/option_price_auth.rs"
-bench = false
-
-[[bin]]
-name = "generate_docs"
-path = "src/bin/generate_docs.rs"
-bench = false
 
 [lib]
+bench = false
 name = "utils"
 path = "src/lib/lib.rs"
-bench = false
 
 [[bench]]
-name = "option_price_bench_faas"
 harness = false
+name = "option_price_bench_faas"

@@ -7,7 +7,7 @@ let server
 const port = '9010'
 const version = 'v2'
 beforeAll((done) => {
-    server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
+    server = spawn(location, [], { env: { ROCKET_PORT: port, ROCKET_ADDRESS: "0.0.0.0", MAJOR_VERSION: version } })
     setTimeout(done, 1000) //wait for server to launch
 })
 

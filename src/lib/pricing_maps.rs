@@ -408,22 +408,21 @@ fn get_risk_measure_results(
 mod tests {
     use crate::pricing_maps::*;
     use approx::*;
-    use rand::{distributions::Distribution, distributions::Uniform, SeedableRng, StdRng};
+    use rand::{distributions::Distribution, distributions::Uniform, rngs::StdRng, SeedableRng};
     #[test]
     fn get_fn_indicators_gets_match() {
         let model = get_fn_indicators("put", "price").unwrap();
         assert_eq!(model, PUT_PRICE);
     }
-    fn get_rng_seed(seed: [u8; 32]) -> StdRng {
-        SeedableRng::from_seed(seed)
+    fn get_rng_seed(seed: u64) -> StdRng {
+        SeedableRng::seed_from_u64(seed)
     }
     fn get_over_region(lower: f64, upper: f64, rand: f64) -> f64 {
         lower + (upper - lower) * rand
     }
     #[test]
     fn test_many_inputs() {
-        let seed: [u8; 32] = [2; 32];
-        let mut rng_seed = get_rng_seed(seed);
+        let mut rng_seed = get_rng_seed(42);
         let uniform = Uniform::new(0.0f64, 1.0);
         let asset = 178.46;
         let num_u = 256;

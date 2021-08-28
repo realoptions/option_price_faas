@@ -16,3 +16,7 @@ pub const CALL_THETA: i32 = 7;
 
 pub const DENSITY: i32 = 8;
 pub const RISK_MEASURES: i32 = 9;
+
+pub const HESTON_NAME: &str = "heston";
+pub const CGMY_NAME: &str = "cgmy";
+pub const MERTON_NAME: &str = "merton";

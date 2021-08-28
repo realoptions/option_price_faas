@@ -21,11 +21,11 @@ jobs:
         fetch-depth: '0'
     - uses: hecrj/setup-rust-action@master
       with:
-        rust-version: nightly
+        rust-version: stable
 
     - name: Build
       run: cargo build
-    - name: Run tests nightly
+    - name: Run tests stable
       run: |
         cargo test
 

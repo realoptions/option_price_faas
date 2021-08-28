@@ -31,7 +31,7 @@ To generate the needed json files, build the project `cargo build --release`, th
 
 `cargo build --release`
 
-`PORT=8080 ./target/release/option_price`
+`ROCKET_PORT=8080 ROCKET_ADDRESS=0.0.0.0 MAJOR_VERSION=v2 ./target/release/option_price`
 
 ## Benchmarks
 
