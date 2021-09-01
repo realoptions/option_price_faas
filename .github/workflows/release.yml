@@ -53,16 +53,17 @@ jobs:
         TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="version_major=$MAJOR_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ..
         rm ./docs/openapi_gcp.yml
-    
+
     - name: templatize yml
       run: |
         cd terraform
-        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/gcp_auth.yml; echo EOF;)"
+
+        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) envsubst < ../docs/gcp_auth.yml > final.yml
         mv -f final.yml ../docs/openapi_gcp.yml
         cat ../docs/openapi_gcp.yml
         cd ..
         npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
-        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/rapidapi_auth.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst < ../docs/rapidapi_auth.yml > final.yml
         mv -f final.yml ./docs/openapi_rapidapi.yml
         cat ./docs/openapi_rapidapi.yml
         npx swagger-cli bundle -r -o ./docs/openapi_rapidapi.yml -t yaml ./docs/openapi_rapidapi.yml
