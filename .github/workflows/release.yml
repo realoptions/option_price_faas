@@ -63,7 +63,8 @@ jobs:
         cat ../docs/openapi_gcp.yml
         cd ..
         npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
-        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst '${VISIBLE_HOST} ${VERSION_MAJOR}' < ../docs/rapidapi_auth.yml > final.yml
+
+        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst '${VISIBLE_HOST} ${VERSION_MAJOR}' < ./docs/rapidapi_auth.yml > final.yml
         mv -f final.yml ./docs/openapi_rapidapi.yml
         cat ./docs/openapi_rapidapi.yml
         npx swagger-cli bundle -r -o ./docs/openapi_rapidapi.yml -t yaml ./docs/openapi_rapidapi.yml
