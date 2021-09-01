@@ -73,7 +73,7 @@ jobs:
       run: |
         cargo build --release
         npm ci
-        npx swagger-cli validate ./docs/openapi_gpc.yml
+        npx swagger-cli validate ./docs/openapi_gcp.yml
         npx swagger-cli validate ./docs/openapi_rapidapi.yml
 
     
