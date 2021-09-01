@@ -255,21 +255,9 @@ pub struct GraphElement {
     pub iv: Option<f64>,
 }
 
-/*
-fn create_generic_iterator<'a, 'b: 'a>(
-    x_values: &'b [f64],
-    values: &'b [f64],
-) -> impl Iterator<Item = (&'a f64, &'a f64)> + 'a {
-    x_values.into_iter().zip(values)
-}*/
-
 fn density_as_json(
     values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
 ) -> Vec<GraphElement> {
-    // x_values
-    //.iter()
-    // .zip(values.iter())
-    //create_generic_iterator(x_values, values)
     values
         .map(|fang_oost::GraphElement { x, value }| GraphElement {
             at_point: x,
@@ -289,13 +277,6 @@ fn graph_no_iv_as_json(
             iv: None,
         })
         .collect::<Vec<_>>()
-    /*create_generic_iterator(x_values, values)
-    .map(|(strike, price)| GraphElement {
-        at_point: *strike,
-        value: *price,
-        iv: None,
-    })
-    .collect::<Vec<_>>()*/
 }
 fn graph_iv_as_json<T>(
     values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
@@ -315,17 +296,6 @@ where
                 .map_err(|_err| throw_no_convergence_error())
         })
         .collect()
-    /*create_generic_iterator(x_values, values)
-    .map(|(strike, price)| {
-        iv_fn(*price, *strike)
-            .map(|iv| GraphElement {
-                at_point: *strike,
-                value: *price,
-                iv: Some(iv),
-            })
-            .map_err(|_err| throw_no_convergence_error())
-    })
-    .collect()*/
 }
 
 fn call_iv_as_json(
@@ -355,9 +325,6 @@ where
     T: Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync + std::marker::Send,
 {
     let x_min = -x_max;
-    //let x_domain = fang_oost::get_x_domain(NUM_X, x_min, x_max).collect::<Vec<_>>();
-    //let discrete_cf = fang_oost::get_discrete_cf(num_u, x_min, x_max, &cf);
-    //let option_range: Vec<f64> = cf_dist_utils::get_pdf(NUM_X, num_u, x_min, x_max, &cf).collect();
     density_as_json(cf_dist_utils::get_pdf(NUM_X, num_u, x_min, x_max, &cf))
 }
 
