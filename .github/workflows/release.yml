@@ -47,10 +47,13 @@ jobs:
 
     - name: terraform 
       run: |
+        npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/gcp_auth.yml
         cd terraform
         terraform init
         TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="version_major=$MAJOR_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ..
+        rm ./docs/openapi_gcp.yml
+    
     - name: templatize yml
       run: |
         cd terraform
@@ -58,12 +61,9 @@ jobs:
         mv -f final.yml ../docs/openapi_gcp.yml
         cat ../docs/openapi_gcp.yml
         cd ..
-
         npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
-
         VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/rapidapi_auth.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_rapidapi.yml
-
         cat ./docs/openapi_rapidapi.yml
         npx swagger-cli bundle -r -o ./docs/openapi_rapidapi.yml -t yaml ./docs/openapi_rapidapi.yml
 
@@ -73,6 +73,8 @@ jobs:
         npm ci
         npx swagger-cli validate ./docs/openapi_gpc.yml
         npx swagger-cli validate ./docs/openapi_rapidapi.yml
+
+    
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0
