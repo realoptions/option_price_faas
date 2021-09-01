@@ -1,0 +1,41 @@
+swagger: '2.0'
+
+info:
+  title: Option Pricing and Sensitivities
+  description: Option pricing using advanced models such as Heston, Extended Merton, and Extended CGMY.
+  version: 2.0.0
+
+
+# when deploying this to the developer portal, VISIBLE_HOST 
+# should be the redirected url (minus the https://).  
+# when deploying to gcp, this should be the gateway url
+# HOST should always be the non-gateway url
+host: ${VISIBLE_HOST} 
+basePath: "/${VERSION_MAJOR}"
+schemes:
+  - https
+produces:
+  - application/json
+x-google-backend:
+  address: https://${HOST} 
+  path_translation: APPEND_PATH_TO_ADDRESS
+
+securityDefinitions:
+  firebase:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/${PROJECT_ID}"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "${PROJECT_ID}"
+  JWT:  
+    type: apiKey  
+    in: query  
+    name: access_token  
+
+security:
+  - firebase: []
+  - JWT: []
+  
+paths: 
+  $ref: spec.yml

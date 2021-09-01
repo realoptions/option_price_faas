@@ -20,3 +20,4 @@ pub const RISK_MEASURES: i32 = 9;
 pub const HESTON_NAME: &str = "heston";
 pub const CGMY_NAME: &str = "cgmy";
 pub const MERTON_NAME: &str = "merton";
+pub const CGMYSE_NAME: &str = "cgmyse";

@@ -153,9 +153,9 @@ checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
 
 [[package]]
 name = "cf_dist_utils"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6524d55fee3dc2995311407841bae5cf6001918845212ed8203033d0fb43e91"
+checksum = "6b1b88fac030a10c9b6020bcb9540c5079332f1ce429d0a1d77f92f38a52444b"
 dependencies = [
  "fang_oost",
  "num-complex",
@@ -167,9 +167,9 @@ dependencies = [
 
 [[package]]
 name = "cf_functions"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91c424222ebc99714cf065d029cbe3061067c18d27b1977170d1bd1520fba730"
+checksum = "e44695e11347f8f9c46fffe8c14f973dbdfb3a15f4813999a76c6242a96c3448"
 dependencies = [
  "num-complex",
  "special",
@@ -383,9 +383,9 @@ dependencies = [
 
 [[package]]
 name = "fang_oost"
-version = "0.14.2"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317f96a964a07585e383567d21c9222d214ae54d51737c8ed12c457aa8be76c4"
+checksum = "5c18e0b6bfc95d091f55ab463b71a342588799489aee0c127754820d2784d7cf"
 dependencies = [
  "num",
  "num-complex",
@@ -394,9 +394,9 @@ dependencies = [
 
 [[package]]
 name = "fang_oost_option"
-version = "0.31.1"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45fb3f7ce6734e45edde611d9685f52cc531e40f46ee1126df5592054c26f2fc"
+checksum = "b1309a9994839204710eddc7a151612aaf2b1bf83e50d3f97005b47727441d74"
 dependencies = [
  "black_scholes",
  "fang_oost",
@@ -1055,7 +1055,7 @@ checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 
 [[package]]
 name = "pricer"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "approx",
  "black_scholes",

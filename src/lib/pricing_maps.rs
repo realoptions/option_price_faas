@@ -3,9 +3,10 @@ use crate::constants::{
     PUT_THETA, RISK_MEASURES,
 };
 use crate::constraints::{
-    check_cgmy_parameters, check_heston_parameters, check_merton_parameters,
-    throw_no_convergence_error, CFParameters, CGMYParameters, ErrorType, HestonParameters,
-    MertonParameters, ParameterError, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
+    check_cgmy_parameters, check_cgmyse_parameters, check_heston_parameters,
+    check_merton_parameters, throw_no_convergence_error, CFParameters, CGMYParameters,
+    CGMYSEParameters, ErrorType, HestonParameters, MertonParameters, ParameterError,
+    CGMYSE_CONSTRAINTS, CGMY_CONSTRAINTS, HESTON_CONSTRAINTS, MERTON_CONSTRAINTS,
 };
 
 use fang_oost_option::option_pricing;
@@ -65,6 +66,30 @@ fn get_cgmy_cf(
     } = cf_parameters;
     let cf_inst = cf_functions::cgmy::cgmy_time_change_cf(
         maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, *rho,
+    );
+    let vol = cf_functions::cgmy::cgmy_diffusion_vol(*sigma, *c, *g, *m, *y, maturity);
+    Ok((cf_inst, vol))
+}
+fn get_cgmyse_cf(
+    cf_parameters: &CGMYSEParameters,
+    maturity: f64,
+    rate: f64,
+) -> Result<(impl Fn(&Complex<f64>) -> Complex<f64>, f64), ParameterError> {
+    check_cgmyse_parameters(&cf_parameters, &CGMYSE_CONSTRAINTS)?;
+    let num_steps = 256; //
+    let CGMYSEParameters {
+        c,
+        g,
+        m,
+        y,
+        sigma,
+        v0,
+        speed,
+        eta_v,
+        //rho,
+    } = cf_parameters;
+    let cf_inst = cf_functions::cgmy::cgmyse_time_change_cf(
+        maturity, rate, *c, *g, *m, *y, *sigma, *v0, *speed, *eta_v, num_steps,
     );
     let vol = cf_functions::cgmy::cgmy_diffusion_vol(*sigma, *c, *g, *m, *y, maturity);
     Ok((cf_inst, vol))
@@ -131,6 +156,13 @@ pub fn get_option_results_as_json(
                 fn_choice, include_iv, num_u, asset, rate, maturity, &strikes, max_strike, &cf_inst,
             )
         }
+        CFParameters::CGMYSE(cf_params) => {
+            let (cf_inst, vol) = get_cgmyse_cf(cf_params, maturity, rate)?;
+            let max_strike = get_max_strike(asset, option_scale, vol);
+            get_option_results(
+                fn_choice, include_iv, num_u, asset, rate, maturity, &strikes, max_strike, &cf_inst,
+            )
+        }
         CFParameters::Merton(cf_params) => {
             let (cf_inst, vol) = get_merton_cf(cf_params, maturity, rate)?;
             let max_strike = get_max_strike(asset, option_scale, vol);
@@ -158,6 +190,11 @@ pub fn get_density_results_as_json(
     match cf_parameters {
         CFParameters::CGMY(cf_params) => {
             let (cf_inst, vol) = get_cgmy_cf(cf_params, maturity, rate)?;
+            let x_max_density = vol * density_scale;
+            get_density_results(num_u, x_max_density, &cf_inst)
+        }
+        CFParameters::CGMYSE(cf_params) => {
+            let (cf_inst, vol) = get_cgmyse_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
             get_density_results(num_u, x_max_density, &cf_inst)
         }
@@ -189,6 +226,12 @@ pub fn get_risk_measure_results_as_json(
             let result = get_risk_measure_results(num_u, x_max_density, quantile, &cf_inst)?;
             Ok(result)
         }
+        CFParameters::CGMYSE(cf_params) => {
+            let (cf_inst, vol) = get_cgmyse_cf(cf_params, maturity, rate)?;
+            let x_max_density = vol * density_scale;
+            let result = get_risk_measure_results(num_u, x_max_density, quantile, &cf_inst)?;
+            Ok(result)
+        }
         CFParameters::Merton(cf_params) => {
             let (cf_inst, vol) = get_merton_cf(cf_params, maturity, rate)?;
             let x_max_density = vol * density_scale;
@@ -212,45 +255,42 @@ pub struct GraphElement {
     pub iv: Option<f64>,
 }
 
-fn create_generic_iterator<'a, 'b: 'a>(
-    x_values: &'b [f64],
-    values: &'b [f64],
-) -> impl Iterator<Item = (&'a f64, &'a f64)> + 'a {
-    x_values.into_iter().zip(values)
-}
-
-fn density_as_json(x_values: &[f64], values: &[f64]) -> Vec<GraphElement> {
-    x_values
-        .iter()
-        .zip(values.iter())
-        .map(|(x_val, val)| GraphElement {
-            at_point: *x_val,
-            value: *val,
+fn density_as_json(
+    values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
+) -> Vec<GraphElement> {
+    values
+        .map(|fang_oost::GraphElement { x, value }| GraphElement {
+            at_point: x,
+            value,
             iv: None,
         })
         .collect::<Vec<_>>()
 }
 
-fn graph_no_iv_as_json(x_values: &[f64], values: &[f64]) -> Vec<GraphElement> {
-    create_generic_iterator(x_values, values)
-        .map(|(strike, price)| GraphElement {
-            at_point: *strike,
-            value: *price,
+fn graph_no_iv_as_json(
+    values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
+) -> Vec<GraphElement> {
+    values
+        .map(|fang_oost::GraphElement { x, value }| GraphElement {
+            at_point: x,
+            value,
             iv: None,
         })
         .collect::<Vec<_>>()
 }
-fn graph_iv_as_json(
-    x_values: &[f64],
-    values: &[f64],
-    iv_fn: &dyn Fn(f64, f64) -> Result<f64, f64>,
-) -> Result<Vec<GraphElement>, ParameterError> {
-    create_generic_iterator(x_values, values)
-        .map(|(strike, price)| {
-            iv_fn(*price, *strike)
+fn graph_iv_as_json<T>(
+    values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
+    iv_fn: T,
+) -> Result<Vec<GraphElement>, ParameterError>
+where
+    T: Fn(f64, f64) -> Result<f64, f64> + std::marker::Sync + std::marker::Send,
+{
+    values
+        .map(|fang_oost::GraphElement { x, value }| {
+            iv_fn(value, x)
                 .map(|iv| GraphElement {
-                    at_point: *strike,
-                    value: *price,
+                    at_point: x,
+                    value,
                     iv: Some(iv),
                 })
                 .map_err(|_err| throw_no_convergence_error())
@@ -259,24 +299,22 @@ fn graph_iv_as_json(
 }
 
 fn call_iv_as_json(
-    x_values: &[f64],
-    values: &[f64],
+    values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
     asset: f64,
     rate: f64,
     maturity: f64,
 ) -> Result<Vec<GraphElement>, ParameterError> {
-    graph_iv_as_json(x_values, values, &|price, strike| {
+    graph_iv_as_json(values, &|price, strike| {
         black_scholes::call_iv(price, asset, strike, rate, maturity)
     })
 }
 fn put_iv_as_json(
-    x_values: &[f64],
-    values: &[f64],
+    values: impl IndexedParallelIterator<Item = fang_oost::GraphElement>,
     asset: f64,
     rate: f64,
     maturity: f64,
 ) -> Result<Vec<GraphElement>, ParameterError> {
-    graph_iv_as_json(x_values, values, &|price, strike| {
+    graph_iv_as_json(values, &|price, strike| {
         black_scholes::put_iv(price, asset, strike, rate, maturity)
     })
 }
@@ -287,16 +325,7 @@ where
     T: Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync + std::marker::Send,
 {
     let x_min = -x_max;
-    let x_domain = fang_oost::get_x_domain(NUM_X, x_min, x_max).collect::<Vec<_>>();
-    let discrete_cf = fang_oost::get_discrete_cf(num_u, x_min, x_max, &cf);
-    let option_range: Vec<f64> = fang_oost::get_density(
-        x_min,
-        x_max,
-        fang_oost::get_x_domain(NUM_X, x_min, x_max),
-        &discrete_cf,
-    )
-    .collect();
-    density_as_json(&x_domain, &option_range)
+    density_as_json(cf_dist_utils::get_pdf(NUM_X, num_u, x_min, x_max, &cf))
 }
 
 fn get_option_results<S>(
@@ -319,9 +348,9 @@ where
                 num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
             );
             if include_iv {
-                call_iv_as_json(&strikes, &prices, asset, rate, maturity)
+                call_iv_as_json(prices, asset, rate, maturity)
             } else {
-                Ok(graph_no_iv_as_json(&strikes, &prices))
+                Ok(graph_no_iv_as_json(prices))
             }
         }
         PUT_PRICE => {
@@ -329,47 +358,29 @@ where
                 num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
             );
             if include_iv {
-                put_iv_as_json(&strikes, &prices, asset, rate, maturity)
+                put_iv_as_json(prices, asset, rate, maturity)
             } else {
-                Ok(graph_no_iv_as_json(&strikes, &prices))
+                Ok(graph_no_iv_as_json(prices))
             }
         }
-        CALL_DELTA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_call_delta(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
-        PUT_DELTA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_put_delta(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
-        CALL_GAMMA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_call_gamma(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
-        PUT_GAMMA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_put_gamma(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
-        CALL_THETA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_call_theta(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
-        PUT_THETA => Ok(graph_no_iv_as_json(
-            &strikes,
-            &option_pricing::fang_oost_put_theta(
-                num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
-            ),
-        )),
+        CALL_DELTA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_call_delta(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
+        PUT_DELTA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_put_delta(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
+        CALL_GAMMA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_call_gamma(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
+        PUT_GAMMA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_put_gamma(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
+        CALL_THETA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_call_theta(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
+        PUT_THETA => Ok(graph_no_iv_as_json(option_pricing::fang_oost_put_theta(
+            num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
+        ))),
         _ => Err(ParameterError::new(&ErrorType::FunctionError(format!(
             "{}",
             fn_choice
@@ -485,20 +496,14 @@ mod tests {
                 num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
             );
 
-            for option_price in opt_prices.iter() {
-                if option_price.is_nan() || option_price.is_infinite() {
-                    println!("lambda: {}", lambda_sim);
-                    println!("mu_l: {}", mu_l_sim);
-                    println!("sig_l: {}", sig_l_sim);
-                    println!("sigma: {}", sigma_sim);
-                    println!("v0: {}", v0_sim);
-                    println!("speed: {}", speed_sim);
-                    println!("eta_v: {}", eta_v_sim);
-                    println!("rho: {}", rho_sim);
-                    num_bad = num_bad + 1;
-                    break;
-                }
-            }
+            let result = opt_prices.find_any(|fang_oost::GraphElement { value, .. }| {
+                value.is_nan() || value.is_infinite()
+            });
+
+            match result {
+                Some(_x) => num_bad += 1,
+                _ => {}
+            };
         });
         let bad_rate = (num_bad as f64) / (num_total as f64);
         println!("Bad rate: {}", bad_rate);
@@ -536,7 +541,7 @@ mod tests {
         let prices = option_pricing::fang_oost_call_price(
             num_u, asset, &strikes, max_strike, rate, maturity, &inst_cf,
         );
-        let result = call_iv_as_json(&strikes, &prices, asset, rate, maturity);
+        let result = call_iv_as_json(prices, asset, rate, maturity);
         assert!(result.is_ok());
     }
     #[test]

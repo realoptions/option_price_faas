@@ -28,7 +28,6 @@
     "husky": "^4.2.3",
     "jest": "^25.1.0",
     "js-yaml": "^3.14.0",
-    "node-fetch": "^2.6.1",
-    "swagger-parser": "^10.0.2"
+    "node-fetch": "^2.6.1"
   }
 }

@@ -53,22 +53,27 @@ jobs:
         cd ..
     - name: templatize yml
       run: |
+        npm install -g swagger-cli
         cd terraform
-        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/openapi_gcp.yml; echo EOF;)"
+        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ../docs/gcp_auth.yml; echo EOF;)"
         mv -f final.yml ../docs/openapi_gcp.yml
         cat ../docs/openapi_gcp.yml
         cd ..
 
-        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/openapi_rapidapi.yml; echo EOF;)"
+        npx swagger-cli bundle -r -o ./openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
+
+        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/rapidapi_auth.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_rapidapi.yml
+
         cat ./docs/openapi_rapidapi.yml
+        swagger-cli bundle -r -o ./openapi_rapidapi.yml -t yaml ./docs/openapi_rapidapi.yml
 
     - name: validate swagger
       run: |
         cargo build --release
         npm ci
-        node ./tests/swagger_validator
-        ./tests/integration_test.sh
+        swagger-cli validate ./docs/openapi_gpc.yml
+        swagger-cli validate ./docs/openapi_rapidapi.yml
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0

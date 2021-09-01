@@ -52,28 +52,6 @@ impl From<JoinError> for ParameterError {
         ParameterError::new(&ErrorType::JsonError(error.to_string()))
     }
 }
-/*
-impl From<nlopt::FailState> for ParameterError {
-    fn from(error: nlopt::FailState) -> ParameterError {
-        match error {
-            nlopt::FailState::Failure => {
-                ParameterError::new(&ErrorType::OptimizationError("Failure".to_string()))
-            }
-            nlopt::FailState::ForcedStop => {
-                ParameterError::new(&ErrorType::OptimizationError("Forced Stop".to_string()))
-            }
-            nlopt::FailState::InvalidArgs => ParameterError::new(&ErrorType::OptimizationError(
-                "Invalid Arguments".to_string(),
-            )),
-            nlopt::FailState::OutOfMemory => {
-                ParameterError::new(&ErrorType::OptimizationError("Out of Memory".to_string()))
-            }
-            nlopt::FailState::RoundoffLimited => ParameterError::new(
-                &ErrorType::OptimizationError("Roundoff Limited".to_string()),
-            ),
-        }
-    }
-}*/
 
 impl From<JsonError<'_>> for ParameterError {
     fn from(error: JsonError) -> ParameterError {
@@ -114,6 +92,17 @@ pub struct CGMYParameters {
     pub speed: f64,
     pub eta_v: f64,
     pub rho: f64,
+}
+#[derive(Serialize, Deserialize)]
+pub struct CGMYSEParameters {
+    pub c: f64,
+    pub g: f64,
+    pub m: f64,
+    pub y: f64,
+    pub sigma: f64,
+    pub v0: f64,
+    pub speed: f64,
+    pub eta_v: f64,
 }
 #[derive(Serialize, Deserialize)]
 pub struct MertonParameters {
@@ -163,6 +152,20 @@ impl CGMYParameters {
         ]
     }
 }
+impl CGMYSEParameters {
+    fn to_vector(&self) -> Vec<(f64, &str)> {
+        vec![
+            (self.c, "c"),
+            (self.g, "g"),
+            (self.m, "m"),
+            (self.y, "y"),
+            (self.sigma, "sigma"),
+            (self.v0, "v0"),
+            (self.speed, "speed"),
+            (self.eta_v, "eta_v"),
+        ]
+    }
+}
 impl HestonParameters {
     fn to_vector(&self) -> Vec<(f64, &str)> {
         vec![
@@ -194,6 +197,7 @@ impl MertonParameters {
 pub enum CFParameters {
     Merton(MertonParameters),
     CGMY(CGMYParameters),
+    CGMYSE(CGMYSEParameters),
     Heston(HestonParameters),
 }
 
@@ -243,6 +247,18 @@ pub struct CGMYConstraints<'a> {
 }
 
 #[derive(Serialize)]
+pub struct CGMYSEConstraints<'a> {
+    pub c: &'a ConstraintsSchema<'a>,
+    pub g: &'a ConstraintsSchema<'a>,
+    pub m: &'a ConstraintsSchema<'a>,
+    pub y: &'a ConstraintsSchema<'a>,
+    pub sigma: &'a ConstraintsSchema<'a>,
+    pub v0: &'a ConstraintsSchema<'a>,
+    pub speed: &'a ConstraintsSchema<'a>,
+    pub eta_v: &'a ConstraintsSchema<'a>,
+}
+
+#[derive(Serialize)]
 pub struct HestonConstraints<'a> {
     pub sigma: &'a ConstraintsSchema<'a>,
     pub v0: &'a ConstraintsSchema<'a>,
@@ -263,6 +279,20 @@ impl CGMYConstraints<'_> {
             &self.speed,
             &self.eta_v,
             &self.rho,
+        ]
+    }
+}
+impl CGMYSEConstraints<'_> {
+    pub fn to_vector(&self) -> Vec<&ConstraintsSchema> {
+        vec![
+            &self.c,
+            &self.g,
+            &self.m,
+            &self.y,
+            &self.sigma,
+            &self.v0,
+            &self.speed,
+            &self.eta_v,
         ]
     }
 }
@@ -429,6 +459,59 @@ pub const CGMY_CONSTRAINTS: CGMYConstraints = CGMYConstraints {
     },
 };
 
+pub const CGMYSE_CONSTRAINTS: CGMYSEConstraints = CGMYSEConstraints {
+    c: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 2.0,
+        types: "float",
+        description: "Parameter C from CGMY, controls overall level of jump frequency",
+    },
+    g: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 20.0,
+        types: "float",
+        description:
+            "Parameter G from CGMY, controls rate of decay for left side of asset distribution",
+    },
+    m: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 20.0,
+        types: "float",
+        description:
+            "Parameter M from CGMY, controls rate of decay for right side of asset distribution",
+    },
+    y: &ConstraintsSchema {
+        lower: -1.0,
+        upper: 2.0,
+        types: "float",
+        description: "Parameter Y from CGMY, characterizes fine structure of jumps",
+    },
+    sigma: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 1.0,
+        types: "float",
+        description: "Volatility of CGMY process for asset",
+    },
+    v0: &ConstraintsSchema {
+        lower: 0.2,
+        upper: 1.8,
+        types: "float",
+        description: "Initial value of the time-change",
+    },
+    speed: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Rate at which time-change diffusion reverts to mean",
+    },
+    eta_v: &ConstraintsSchema {
+        lower: 0.0,
+        upper: 3.0,
+        types: "float",
+        description: "Volatility of vol",
+    },
+};
+
 pub const HESTON_CONSTRAINTS: HestonConstraints = HestonConstraints {
     sigma: &ConstraintsSchema {
         lower: 0.0,
@@ -518,6 +601,15 @@ pub fn check_merton_parameters<'a>(
 pub fn check_cgmy_parameters<'a>(
     parameters: &CGMYParameters,
     constraints: &CGMYConstraints,
+) -> Result<(), ParameterError> {
+    for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
+        check_constraint(*param, &constraint, name)?;
+    }
+    Ok(())
+}
+pub fn check_cgmyse_parameters<'a>(
+    parameters: &CGMYSEParameters,
+    constraints: &CGMYSEConstraints,
 ) -> Result<(), ParameterError> {
     for ((param, name), constraint) in parameters.to_vector().iter().zip(constraints.to_vector()) {
         check_constraint(*param, &constraint, name)?;
@@ -730,6 +822,40 @@ mod tests {
             "Parameter sigma out of bounds."
         );
     }
+    #[test]
+    fn test_check_cgmyse_parameters_ok() {
+        let parameters = CGMYSEParameters {
+            c: 0.5,
+            g: 3.0,
+            m: 3.0,
+            y: 0.2,
+            sigma: 0.3,
+            v0: 0.2,
+            speed: 0.5,
+            eta_v: 0.3,
+        };
+        let result = check_cgmyse_parameters(&parameters, &CGMYSE_CONSTRAINTS);
+        assert!(result.is_ok());
+    }
+    #[test]
+    fn test_check_cgmyse_parameters_err() {
+        let parameters = CGMYSEParameters {
+            c: 0.5,
+            g: 3.0,
+            m: 3.0,
+            y: 0.2,
+            sigma: -0.3,
+            v0: 0.2,
+            speed: 0.5,
+            eta_v: 0.3,
+        };
+        let result = check_cgmyse_parameters(&parameters, &CGMYSE_CONSTRAINTS);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Parameter sigma out of bounds."
+        );
+    }
 
     #[test]
     fn test_serialization_heston() {
@@ -799,6 +925,31 @@ mod tests {
         let parameters: OptionParameters = serde_json::from_str(json_str).unwrap();
         match parameters.cf_parameters {
             CFParameters::CGMY(cf_params) => {
+                assert_eq!(cf_params.sigma, 0.5);
+            }
+            _ => assert!(false),
+        }
+    }
+    #[test]
+    fn test_serialization_cgmyse() {
+        let json_str = r#"{
+            "maturity": 0.5,
+            "rate": 0.05,
+            "num_u": 8,
+            "cf_parameters":{
+                "sigma":0.5,
+                "speed":0.1,
+                "v0":0.2,
+                "eta_v":0.1,
+                "c": 0.5,
+                "g": 3.0,
+                "m": 4.0,
+                "y":0.5
+            }
+        }"#;
+        let parameters: OptionParameters = serde_json::from_str(json_str).unwrap();
+        match parameters.cf_parameters {
+            CFParameters::CGMYSE(cf_params) => {
                 assert_eq!(cf_params.sigma, 0.5);
             }
             _ => assert!(false),
