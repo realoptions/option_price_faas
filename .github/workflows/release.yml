@@ -60,7 +60,7 @@ jobs:
         cat ../docs/openapi_gcp.yml
         cd ..
 
-        swagger-cli bundle -r -o ./openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
+        npx swagger-cli bundle -r -o ./openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
 
         VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION source /dev/stdin <<<"$(echo 'cat <<EOF >final.yml'; cat ./docs/rapidapi_auth.yml; echo EOF;)"
         mv -f final.yml ./docs/openapi_rapidapi.yml

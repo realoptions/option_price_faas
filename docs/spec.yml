@@ -386,7 +386,7 @@
   post:
     consumes:
     - application/json
-    operationId: computeCGMYDensity
+    operationId: computeCGMYSEDensity
     summary: Calculator for computing probability densities for CGMY process
     description: Computes probability density for an extended CGMY process
     responses:
@@ -615,7 +615,7 @@
   post:
     consumes:
     - application/json
-    operationId: computeCGMYMetric
+    operationId: computeCGMYSEMetric
     summary: Calculator for computing risk metrics for CGMY process
     description: Computes value at risk and expected shortfall for extended CGMY
       process
@@ -909,7 +909,7 @@
     parameters: []
 "/cgmyse/parameters/parameter_ranges":
   get:
-    operationId: getCGMYRange
+    operationId: getCGMYSERange
     summary: Parameter Constraints
     description: Obtains the constraints that the parameters in the post requests
       are required to conform to for CGMY.
