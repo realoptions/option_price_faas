@@ -1,0 +1,1163 @@
+"/cgmy/calculator/{optionType}/{sensitivity}":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYOptions
+    summary: Calculator for computing option prices and sensitivities for a CGMY
+      process
+    description: Computes European option prices, implied volatilities, and sensitivities
+      at every strike price for an asset that follows an extended CGMY process
+    responses:
+      '200':
+        description: Option prices and sensitivites
+        schema:
+          $ref: "references.yml#/CalculatorResponseSchema"
+        examples:
+          $ref: "references.yml#/CalculatorResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - name: optionType
+      in: path
+      required: true
+      description: The type of option.
+      enum:
+      - call
+      - put
+      type: string
+    - name: sensitivity
+      in: path
+      required: true
+      description: Prices or Greeks
+      enum:
+      - price
+      - delta
+      - gamma
+      - theta
+      type: string
+    - name: include_implied_volatility
+      in: query
+      description: Whether to include implied volatility in the results.  Defaults
+        to 'false'.  Only applicable for sensitivity='price'
+      type: boolean
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          asset:
+            type: number
+            example: 50
+          cf_parameters:
+            $ref: "references.yml#/CGMYParameters"
+            
+          strikes:
+            type: array
+            items:
+              type: number
+            example:
+            - 50
+        required:
+        - num_u
+        - rate
+        - maturity
+        - asset
+        - cf_parameters
+        - strikes
+        additionalProperties: false
+"/cgmyse/calculator/{optionType}/{sensitivity}":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYSEOptions
+    summary: Calculator for computing option prices and sensitivities for a self-exciting CGMY
+      process
+    description: Computes European option prices, implied volatilities, and sensitivities
+      at every strike price for an asset that follows an extended CGMY process
+    responses:
+      '200':
+        description: Option prices and sensitivities
+        schema:
+          $ref: "references.yml#/CalculatorResponseSchema"
+        examples:
+          $ref: "references.yml#/CalculatorResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - name: optionType
+      in: path
+      required: true
+      description: The type of option.
+      enum:
+      - call
+      - put
+      type: string
+    - name: sensitivity
+      in: path
+      required: true
+      description: Prices or Greeks
+      enum:
+      - price
+      - delta
+      - gamma
+      - theta
+      type: string
+    - name: include_implied_volatility
+      in: query
+      description: Whether to include implied volatility in the results.  Defaults
+        to 'false'.  Only applicable for sensitivity='price'
+      type: boolean
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          asset:
+            type: number
+            example: 50
+          cf_parameters:
+            $ref: "references.yml#/CGMYSEParameters"
+            
+          strikes:
+            type: array
+            items:
+              type: number
+            example:
+            - 50
+        required:
+        - num_u
+        - rate
+        - maturity
+        - asset
+        - cf_parameters
+        - strikes
+        additionalProperties: false
+
+"/heston/calculator/{optionType}/{sensitivity}":
+  post:
+    consumes:
+    - application/json
+    operationId: computeHestonOptions
+    summary: Calculator for computing option prices and sensitivities for a Heston
+      model
+    description: Computes European option prices, implied volatilities, and sensitivities
+      at every strike price for an asset that follows a Heston process
+    responses:
+      '200':
+        description: Option prices and sensitivities
+        schema:
+          $ref: "references.yml#/CalculatorResponseSchema"
+        examples:
+          $ref: "references.yml#/CalculatorResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - name: optionType
+      in: path
+      required: true
+      description: The type of option.
+      enum:
+      - call
+      - put
+      type: string
+    - name: sensitivity
+      in: path
+      required: true
+      description: Prices or Greeks
+      enum:
+      - price
+      - delta
+      - gamma
+      - theta
+      type: string
+    - name: include_implied_volatility
+      in: query
+      description: Whether to include implied volatility in the results.  Defaults
+        to 'false'.  Only applicable for sensitivity='price'
+      type: boolean
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          asset:
+            type: number
+            example: 50
+          cf_parameters:
+            $ref: "references.yml#/HestonParameters"
+          strikes:
+            type: array
+            items:
+              type: number
+            example:
+            - 50
+        required:
+        - num_u
+        - rate
+        - maturity
+        - asset
+        - cf_parameters
+        - strikes
+        additionalProperties: false
+"/merton/calculator/{optionType}/{sensitivity}":
+  post:
+    consumes:
+    - application/json
+    operationId: computeMertonOptions
+    summary: Calculator for computing option prices and sensitivities for a Merton
+      model
+    description: Computes European option prices, implied volatilities, and sensitivities
+      at every strike price for an asset that follows an extended Merton process
+    responses:
+      '200':
+        description: Option prices and sensitivities
+        schema:
+          $ref: "references.yml#/CalculatorResponseSchema"
+        examples:
+          $ref: "references.yml#/CalculatorResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - name: optionType
+      in: path
+      required: true
+      description: The type of option.
+      enum:
+      - call
+      - put
+      type: string
+    - name: sensitivity
+      in: path
+      required: true
+      description: Prices or Greeks
+      enum:
+      - price
+      - delta
+      - gamma
+      - theta
+      type: string
+    - name: include_implied_volatility
+      in: query
+      description: Whether to include implied volatility in the results.  Defaults
+        to 'false'.  Only applicable for sensitivity='price'
+      type: boolean
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          asset:
+            type: number
+            example: 50
+          cf_parameters:
+            $ref: "references.yml#/MertonParameters"
+          strikes:
+            type: array
+            items:
+              type: number
+            example:
+            - 50
+        required:
+        - num_u
+        - rate
+        - maturity
+        - asset
+        - cf_parameters
+        - strikes
+        additionalProperties: false
+
+"/cgmy/density":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYDensity
+    summary: Calculator for computing probability densities for CGMY process
+    description: Computes probability density for an extended CGMY process
+    responses:
+      '200':
+        description: Density
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+              at_point:
+                type: number
+            required:
+            - value
+            - at_point
+            additionalProperties: false
+        examples:
+          $ref: "references.yml#/DensityResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/CGMYParameters"
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+"/cgmyse/density":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYDensity
+    summary: Calculator for computing probability densities for CGMY process
+    description: Computes probability density for an extended CGMY process
+    responses:
+      '200':
+        description: Density
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+              at_point:
+                type: number
+            required:
+            - value
+            - at_point
+            additionalProperties: false
+        examples:
+          $ref: "references.yml#/DensityResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/CGMYSEParameters"
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+"/heston/density":
+  post:
+    consumes:
+    - application/json
+    operationId: computeHestonDensity
+    summary: Calculator for computing probability densities for Heston model
+    description: Computes probability density for a Heston model
+    responses:
+      '200':
+        description: Density
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+              at_point:
+                type: number
+            required:
+            - value
+            - at_point
+            additionalProperties: false
+        examples:
+          $ref: "references.yml#/DensityResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/HestonParameters"
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+"/merton/density":
+  post:
+    consumes:
+    - application/json
+    operationId: computeMertonDensity
+    summary: Calculator for computing probability densities for Merton model
+    description: Computes probability density for a Merton model
+    responses:
+      '200':
+        description: Density
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+              at_point:
+                type: number
+            required:
+            - value
+            - at_point
+            additionalProperties: false
+        examples:
+          $ref: "references.yml#/DensityResponseExample"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/MertonParameters"
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+"/cgmy/riskmetric":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYMetric
+    summary: Calculator for computing risk metrics for CGMY process
+    description: Computes value at risk and expected shortfall for extended CGMY
+      process
+    responses:
+      '200':
+        description: Value at risk and expected shortfall
+        schema:
+          type: object
+          properties:
+            value_at_risk:
+              type: number
+            expected_shortfall:
+              type: number
+          required:
+          - value_at_risk
+          - expected_shortfall
+          additionalProperties: false
+        examples:
+          application/json:
+            expected_shortfall: 0.5899624494097084
+            value_at_risk: -0.009528544711918437
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/CGMYParameters"
+            additionalProperties: false
+          quantile:
+            type: number
+            example: 0.01
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+"/cgmyse/riskmetric":
+  post:
+    consumes:
+    - application/json
+    operationId: computeCGMYMetric
+    summary: Calculator for computing risk metrics for CGMY process
+    description: Computes value at risk and expected shortfall for extended CGMY
+      process
+    responses:
+      '200':
+        description: Value at risk and expected shortfall
+        schema:
+          type: object
+          properties:
+            value_at_risk:
+              type: number
+            expected_shortfall:
+              type: number
+          required:
+          - value_at_risk
+          - expected_shortfall
+          additionalProperties: false
+        examples:
+          application/json:
+            expected_shortfall: 0.5899624494097084
+            value_at_risk: -0.009528544711918437
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/CGMYSEParameters"
+            additionalProperties: false
+          quantile:
+            type: number
+            example: 0.01
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        additionalProperties: false
+
+"/heston/riskmetric":
+  post:
+    consumes:
+    - application/json
+    operationId: computeHestonMetric
+    summary: Calculator for computing risk metrics for Heston model
+    description: Computes value at risk and expected shortfall for a Heston model
+    responses:
+      '200':
+        description: Value at risk and expected shortfall
+        schema:
+          type: object
+          properties:
+            value_at_risk:
+              type: number
+            expected_shortfall:
+              type: number
+          required:
+          - value_at_risk
+          - expected_shortfall
+          additionalProperties: false
+        examples:
+          application/json:
+            expected_shortfall: 0.5899624494097084
+            value_at_risk: -0.009528544711918437
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/HestonParameters"
+          quantile:
+            type: number
+            example: 0.01
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        - quantile
+        additionalProperties: false
+"/merton/riskmetric":
+  post:
+    consumes:
+    - application/json
+    operationId: computeMertonMetric
+    summary: Calculator for computing risk metrics for Merton model
+    description: Computes value at risk and expected shortfall for an extended Merton
+      model
+    responses:
+      '200':
+        description: Value at risk and expected shortfall
+        schema:
+          type: object
+          properties:
+            value_at_risk:
+              type: number
+            expected_shortfall:
+              type: number
+          required:
+          - value_at_risk
+          - expected_shortfall
+          additionalProperties: false
+        examples:
+          application/json:
+            expected_shortfall: 0.5899624494097084
+            value_at_risk: -0.009528544711918437
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters:
+    - required: true
+      name: body
+      in: body
+      schema:
+        type: object
+        properties:
+          num_u:
+            type: integer
+            example: 8
+          rate:
+            type: number
+            example: 0.04
+          maturity:
+            type: number
+            example: 0.5
+          cf_parameters:
+            $ref: "references.yml#/MertonParameters"
+          quantile:
+            type: number
+            example: 0.01
+        required:
+        - num_u
+        - rate
+        - maturity
+        - cf_parameters
+        - quantile
+        additionalProperties: false
+
+"/heston/parameters/parameter_ranges":
+  get:
+    operationId: getHestonRange
+    summary: Parameter Constraints
+    description: Obtains the constraints that the parameters in the post requests
+      are required to conform to for Heston.
+    responses:
+      '200':
+        description: Constraints
+        schema:
+          $ref: "references.yml#/HestonConstraints"
+        examples:
+          application/json:
+            v0:
+              lower: 0
+              upper: 0.9
+              types: float
+              description: "Square root of mean of variance process"
+            speed:
+              lower: 0
+              upper: 2
+              types: float
+              description: "Square root of initial value of the instantaneous variance"
+            eta_v:
+              lower: 0
+              upper: 0.5
+              types: float
+              description: "Rate at which variance reverts to mean"
+            sigma:
+              lower: 0
+              upper: 1
+              types: float
+              description: "Vol of vol: volatility of instantaneous variance"
+            rho:
+              lower: -1
+              upper: 1
+              types: float
+              description: "Correlation between asset and variance diffusions"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters: []
+"/cgmy/parameters/parameter_ranges":
+  get:
+    operationId: getCGMYRange
+    summary: Parameter Constraints
+    description: Obtains the constraints that the parameters in the post requests
+      are required to conform to for CGMY.
+    responses:
+      '200':
+        description: Constraints
+        schema:
+          $ref: "references.yml#/CGMYConstraints"
+        examples:
+          application/json:
+            c:
+              lower: 0
+              upper: 10
+              type: float
+              description: "Parameter C from CGMY, controls overall level of jump frequency"
+            g:
+              lower: 0
+              upper: 20
+              type: float
+              description: "Parameter G from CGMY, controls rate of decay for left side of asset distribution"
+            m:
+              lower: 0
+              upper: 20
+              type: float
+              description: "Parameter M from CGMY, controls rate of decay for right side of asset distribution"
+            y:
+              lower: -2
+              upper: 2
+              type: float
+              description: "Parameter Y from CGMY, characterizes fine structure of jumps"
+            v0:
+              lower: 0
+              upper: 2
+              type: float
+              description: "Initial value of the time-change diffusion"
+            speed:
+              lower: 0
+              upper: 2
+              type: float
+              description: "Rate at which time-change diffusion reverts to mean"
+            eta_v:
+              lower: 0
+              upper: 0.5
+              type: float
+              description: "Volatility of time-change diffusion"
+            sigma:
+              lower: 0
+              upper: 1
+              type: float
+              description: "Volatility of diffusion component of asset process"
+            rho:
+              lower: -1
+              upper: 1
+              type: float
+              description: "Correlation between asset and time-change diffusions"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters: []
+"/cgmyse/parameters/parameter_ranges":
+  get:
+    operationId: getCGMYRange
+    summary: Parameter Constraints
+    description: Obtains the constraints that the parameters in the post requests
+      are required to conform to for CGMY.
+    responses:
+      '200':
+        description: Constraints
+        schema:
+          $ref: "references.yml#/CGMYConstraints"
+        examples:
+          application/json:
+            c:
+              lower: 0
+              upper: 10
+              type: float
+              description: "Parameter C from CGMY, controls overall level of jump frequency"
+            g:
+              lower: 0
+              upper: 20
+              type: float
+              description: "Parameter G from CGMY, controls rate of decay for left side of asset distribution"
+            m:
+              lower: 0
+              upper: 20
+              type: float
+              description: "Parameter M from CGMY, controls rate of decay for right side of asset distribution"
+            y:
+              lower: -2
+              upper: 2
+              type: float
+              description: "Parameter Y from CGMY, characterizes fine structure of jumps"
+            v0:
+              lower: 0
+              upper: 2
+              type: float
+              description: "Initial value of the time-change process"
+            speed:
+              lower: 0
+              upper: 2
+              type: float
+              description: "Rate at which time-change process reverts to mean"
+            eta_v:
+              lower: 0
+              upper: 0.5
+              type: float
+              description: "Volatility of time-change process"
+            sigma:
+              lower: 0
+              upper: 1
+              type: float
+              description: "Volatility of asset process"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters: []
+"/merton/parameters/parameter_ranges":
+  get:
+    operationId: getMertonRange
+    summary: Parameter Constraints
+    description: Obtains the constraints that the parameters in the post requests
+      are required to conform to for Merton.
+    responses:
+      '200':
+        description: Constraints
+        schema:
+          $ref: "references.yml#/MertonConstraints"
+        examples:
+          application/json:
+            lambda:
+              lower: 0
+              upper: 4
+              types: float
+              description: "Annualized frequency of jumps for the asset process"
+            mu_l:
+              lower: 0
+              upper: 1
+              types: float
+              description: "Mean jump size"
+            sig_l:
+              lower: 0
+              upper: 0.6
+              types: float
+              description: "Volatility of jump size"
+            v0:
+              lower: 0
+              upper: 2
+              types: float
+              description: "Initial value of the time-change diffusion"
+            speed:
+              lower: 0
+              upper: 2
+              types: float
+              description: "Rate at which time-change diffusion reverts to mean"
+            eta_v:
+              lower: 0
+              upper: 0.5
+              types: float
+              description: "Volatility of time-change diffusion"
+            sigma:
+              lower: 0
+              upper: 1
+              types: float
+              description: "Volatility of diffusion component of asset process"
+            rho:
+              lower: -1
+              upper: 1
+              types: float
+              description: "Correlation between asset and time-change diffusions"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters: []
+"/market/parameters/parameter_ranges":
+  get:
+    operationId: getMarketRange
+    summary: Market Constraints
+    description: Obtains the constraints that correspond with the market.
+    responses:
+      '200':
+        description: Constraints
+        schema:
+          type: object
+          properties:
+            rate:
+              type: object
+              properties:
+                lower:
+                  type: number
+                upper:
+                  type: number
+                types:
+                  type: string
+                description:
+                  type: string
+              required:
+              - lower
+              - upper
+              - types
+              - description
+              additionalProperties: false
+            asset:
+              type: object
+              properties:
+                lower:
+                  type: number
+                upper:
+                  type: number
+                types:
+                  type: string
+                description:
+                  type: string
+              required:
+              - lower
+              - upper
+              - types
+              - description
+              additionalProperties: false
+            maturity:
+              type: object
+              properties:
+                lower:
+                  type: number
+                upper:
+                  type: number
+                types:
+                  type: string
+                description:
+                  type: string
+              required:
+              - lower
+              - upper
+              - types
+              - description
+              additionalProperties: false
+            num_u:
+              type: object
+              properties:
+                lower:
+                  type: number
+                upper:
+                  type: number
+                types:
+                  type: string
+                description:
+                  type: string
+              required:
+              - lower
+              - upper
+              - types
+              - description
+              additionalProperties: false
+            quantile:
+              type: object
+              properties:
+                lower:
+                  type: number
+                upper:
+                  type: number
+                types:
+                  type: string
+                description:
+                  type: string
+              required:
+              - lower
+              - upper
+              - types
+              - description
+              additionalProperties: false
+        examples:
+          application/json:
+            asset:
+              lower: 0
+              upper: 1000000
+              types: float
+              description: "Underlying asset"
+            maturity:
+              lower: 0
+              upper: 1000000
+              types: float
+              description: "Time in years till option expiration"
+            num_u:
+              lower: 5
+              upper: 10
+              types: int
+              description: "Exponent for the precision of the numeric inversion.  For example, 8 represents 2^8=256."
+            quantile:
+              lower: 0
+              upper: 1
+              types: float
+              description: "Quantile of (risk-neutral) distribution of the underlying asset.  For example, 0.05 would map to a 95% VaR."
+            rate:
+              lower: 0
+              upper: 0.4
+              types: float
+              description: "Annualized risk-free interest rate"
+      '400':
+        description: Error for incorrect request
+        schema:
+          type: object
+          properties: 
+            err: 
+              type: string
+    parameters: []
+

@@ -13,6 +13,7 @@ pub async fn parameters(_key: auth::ApiKey, model: &str) -> Value {
     match model {
         constants::HESTON_NAME => json!(constraints::HESTON_CONSTRAINTS),
         constants::CGMY_NAME => json!(constraints::CGMY_CONSTRAINTS),
+        constants::CGMYSE_NAME => json!(constraints::CGMYSE_CONSTRAINTS),
         constants::MERTON_NAME => json!(constraints::MERTON_CONSTRAINTS),
         _ => json!(constraints::PARAMETER_CONSTRAINTS),
     }
@@ -63,37 +64,6 @@ pub async fn calculator(
     .await??;
     Ok(Json(results))
 }
-/*
-#[post("/<model>/calibrator/call", data = "<calibration_parameters>")]
-pub async fn calibrator(
-    _key: auth::ApiKey,
-    model: &str,
-    calibration_parameters: Result<Json<constraints::CalibrationParameters>, JsonError<'_>>,
-) -> Result<Json<constraints::CalibrationResponse>, constraints::ParameterError> {
-    let calibration_parameters = calibration_parameters?;
-    let constraints::CalibrationParameters {
-        rate,
-        asset,
-        num_u: num_u_base,
-        option_data,
-    } = calibration_parameters.into_inner();
-    let model_indicator = calibration_maps::get_model_indicators(model)?;
-    let num_iter = calibration_maps::get_num_iter(model)?;
-    let num_u = (2 as usize).pow(num_u_base as u32);
-    let results = task::spawn_blocking(move || {
-        calibration_maps::get_option_calibration_results_as_json(
-            model_indicator,
-            &option_data,
-            OPTION_SCALE,
-            num_iter,
-            num_u,
-            asset,
-            rate,
-        )
-    })
-    .await??;
-    Ok(Json(results))
-}*/
 
 #[post("/<_>/density", data = "<parameters>")]
 pub async fn density(
