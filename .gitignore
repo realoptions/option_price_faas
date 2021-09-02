@@ -17,3 +17,5 @@ service.json
 *.gz
 *.aux
 nohup.out
+.metals
+.vscode

@@ -167,9 +167,9 @@ dependencies = [
 
 [[package]]
 name = "cf_functions"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e44695e11347f8f9c46fffe8c14f973dbdfb3a15f4813999a76c6242a96c3448"
+checksum = "2b31b5ebf30e806147893c38a05f651911f0f74d79718681626329f091dca08a"
 dependencies = [
  "num-complex",
  "special",
@@ -1055,7 +1055,7 @@ checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 
 [[package]]
 name = "pricer"
-version = "3.1.0"
+version = "3.1.1"
 dependencies = [
  "approx",
  "black_scholes",
