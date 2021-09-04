@@ -85,15 +85,25 @@ jobs:
         WITH_V: true
       id: tag_bump
 
+    #- name: Upload to release
+    #  uses: svenstaro/upload-release-action@v2
+    #  with:
+    #    repo_token: ${{ secrets.GITHUB_TOKEN }}
+    #    file: ./docs/*.yml,
+    #    tag: ${{ steps.tag_bump.outputs.new_tag }}
+    #    release_name: release ${{ steps.tag_bump.outputs.new_tag }}
+    #    overwrite: true
+    #    file_glob: true
+
     - name: Upload to release
-      uses: svenstaro/upload-release-action@v2
+      uses: softprops/action-gh-release@v1
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./docs/*.yml
-        tag: ${{ steps.tag_bump.outputs.new_tag }}
-        release_name: release ${{ steps.tag_bump.outputs.new_tag }}
-        overwrite: true
-        file_glob: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        name: release ${{ steps.tag_bump.outputs.new_tag }}
+        tag_name: ${{ steps.tag_bump.outputs.new_tag }}
+        files: |
+          ./docs/*.yml
+          ./techdoc/*.pdf
       
     - name: provision rapid api
       run: |

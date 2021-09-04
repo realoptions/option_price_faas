@@ -391,7 +391,7 @@ where
 fn get_density_results(
     num_u: usize,
     x_max_density: f64,
-    inst_cf: &(dyn Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync),
+    inst_cf: &(impl Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync),
 ) -> Result<Vec<GraphElement>, ParameterError> {
     Ok(adjust_density(num_u, x_max_density, &inst_cf))
 }
@@ -402,7 +402,7 @@ fn get_risk_measure_results(
     num_u: usize,
     x_max_density: f64,
     quantile: f64,
-    inst_cf: &(dyn Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync),
+    inst_cf: &(impl Fn(&Complex<f64>) -> Complex<f64> + std::marker::Sync),
 ) -> Result<cf_dist_utils::RiskMetric, cf_dist_utils::ValueAtRiskError> {
     cf_dist_utils::get_expected_shortfall_and_value_at_risk(
         quantile,
@@ -765,7 +765,6 @@ mod tests {
     }
     #[test]
     fn test_monte_carlo() {
-        //https://github.com/phillyfan1138/fang_oost_cal_charts/blob/master/docs/OptionCalculation.Rnw
         // ../../techdoc/OptionCalculation.Rnw
         let parameters = MertonParameters {
             sigma: 0.2,
