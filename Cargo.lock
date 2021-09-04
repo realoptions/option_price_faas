@@ -167,9 +167,9 @@ dependencies = [
 
 [[package]]
 name = "cf_functions"
-version = "0.15.1"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b31b5ebf30e806147893c38a05f651911f0f74d79718681626329f091dca08a"
+checksum = "76f7707aab914b522f25a569889d7487974600b57185056a787dabac62eaeb06"
 dependencies = [
  "num-complex",
  "special",
