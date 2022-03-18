@@ -76,8 +76,6 @@ jobs:
         npx swagger-cli validate ./docs/openapi_gcp.yml
         npx swagger-cli validate ./docs/openapi_rapidapi.yml
 
-    
-
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0
       env:
