@@ -12,9 +12,6 @@ schemes:
   - https
 produces:
   - application/json
-x-google-backend:
-  address: https://${HOST} 
-  path_translation: APPEND_PATH_TO_ADDRESS
 
 securityDefinitions:
   firebase:
