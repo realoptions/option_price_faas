@@ -115,14 +115,14 @@ resource "google_api_gateway_api_config" "api_realoptions" {
   openapi_documents {
     document {
       path = "spec.yaml"
-      contents = templatefile(
+      contents = base64encode(templatefile(
         "../docs/openapi_gcp.yml",
         {
           VERSION_MAJOR = var.version_major
           HOST          = local.realoptions_url
           PROJECT_ID    = var.project
         }
-      )
+      ))
     }
   }
   lifecycle {
