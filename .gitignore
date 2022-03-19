@@ -19,3 +19,4 @@ service.json
 nohup.out
 .metals
 .vscode
+*.lock.hcl
