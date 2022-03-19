@@ -20,7 +20,7 @@ resource "google_project_service" "cloud_run" {
 }
 
 resource "google_project_service" "apigateway" {
-  service = "apigateway.googleapis.com	"
+  service = "apigateway.googleapis.com"
 }
 
 # actual app logic
@@ -86,7 +86,7 @@ resource "google_cloud_run_service_iam_policy" "realoptions_noauth" {
   location    = google_cloud_run_service.realoptions.location
   project     = google_cloud_run_service.realoptions.project
   service     = google_cloud_run_service.realoptions.name
-  policy_data = data.google_iam_policy.noauth.policy_data
+  policy_data = data.google_iam_policy.noauth.policy_data # TODO this should ONLY be invoked by API Gateway
 }
 # Enable public access on endpoints Cloud Run service for rapidapi
 resource "google_cloud_run_service_iam_policy" "realoptions_rapidapi_noauth" {
