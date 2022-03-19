@@ -27,7 +27,6 @@ sha2 = "0.9.1"
 
 [dev-dependencies]
 approx = "0.2.0"
-criterion = "0.3"
 rand = { version = "0.8", features = ["std_rng"] }
 
 [badges]
@@ -48,6 +47,5 @@ bench = false
 name = "utils"
 path = "src/lib/lib.rs"
 
-[[bench]]
-harness = false
-name = "option_price_bench_faas"
+[profile.bench]
+lto = true

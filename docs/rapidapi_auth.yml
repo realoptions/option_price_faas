@@ -5,7 +5,12 @@ info:
   description: Option pricing using advanced models such as Heston, Extended Merton, and Extended CGMY.
   version: 2.0.0
 
-host: ${HOST} 
+
+# when deploying this to the developer portal, VISIBLE_HOST 
+# should be the redirected url (minus the https://).  
+# when deploying to gcp, this should be the gateway url
+# HOST should always be the non-gateway url
+host: ${VISIBLE_HOST} 
 basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
