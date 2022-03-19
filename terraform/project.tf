@@ -86,7 +86,7 @@ resource "google_cloud_run_service_iam_policy" "realoptions_noauth" {
   location    = google_cloud_run_service.realoptions.location
   project     = google_cloud_run_service.realoptions.project
   service     = google_cloud_run_service.realoptions.name
-  policy_data = data.google_iam_policy.noauth.policy_data # TODO this should ONLY be invoked by API Gateway
+  policy_data = data.google_iam_policy.noauth.policy_data # TODO this should ONLY be allowed to be invoked by API Gateway
 }
 # Enable public access on endpoints Cloud Run service for rapidapi
 resource "google_cloud_run_service_iam_policy" "realoptions_rapidapi_noauth" {
@@ -100,6 +100,10 @@ locals {
 }
 output "realoptions_rapidapi_url" {
   value = replace(google_cloud_run_service.realoptions_rapidapi.status[0].url, "https://", "")
+}
+
+output "realoptions_url" {
+  value = replace(google_cloud_run_service.realoptions.status[0].url, "https://", "")
 }
 
 resource "google_api_gateway_api" "api_realoptions" {
@@ -120,6 +124,7 @@ resource "google_api_gateway_api_config" "api_realoptions" {
         {
           VERSION_MAJOR = var.version_major
           HOST          = local.realoptions_url
+          EXTERNAL_HOST = var.custom_gcp_domain
           PROJECT_ID    = var.project
         }
       ))
@@ -129,18 +134,43 @@ resource "google_api_gateway_api_config" "api_realoptions" {
     create_before_destroy = true
   }
 }
+data "google_iam_policy" "public_api_access" {
+  binding {
+    role = "roles/apigateway.viewer"
+    members = [
+      "allUsers",
+    ]
+  }
+}
+resource "google_api_gateway_api_config_iam_policy" "api_policy" {
+  provider = google-beta
+  api = google_api_gateway_api_config.api_realoptions.api
+  api_config = google_api_gateway_api_config.api_realoptions.api_config_id
+  policy_data = data.google_iam_policy.public_api_access.policy_data
+}
+resource "google_api_gateway_gateway" "api_realoptions" {
+  provider = google-beta
+  api_config   = google_api_gateway_api_config.api_realoptions.id
 
-resource "google_cloud_run_domain_mapping" "domain_mapping" {
+  gateway_id   = local.gateway_id
+  display_name = local.display_name
+
+  depends_on   = [google_api_gateway_api_config.api_realoptions]
+}
+
+
+## TODO! Need to map custom domain to API Gateway, not to cloud run
+/*resource "google_cloud_run_domain_mapping" "domain_mapping" {
   name     = var.custom_gcp_domain
   location = var.region
   spec {
-    route_name = google_cloud_run_service.realoptions.name
+    route_name = google_cloud_run_service.realoptions.name # or should this be through API Gateway??
   }
   metadata {
     namespace = var.project
   }
   depends_on = [google_cloud_run_service.realoptions]
-}
+}*/
 
 resource "google_cloud_run_domain_mapping" "domain_mapping_rapid_api" {
   name     = var.custom_rapid_api_domain

@@ -6,12 +6,16 @@ info:
   version: 2.0.0
 
 
-host: ${HOST} 
+host: ${EXTERNAL_HOST} 
 basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
 produces:
   - application/json
+
+x-google-backend:
+  address: https://${HOST} 
+  path_translation: APPEND_PATH_TO_ADDRESS
 
 securityDefinitions:
   firebase:

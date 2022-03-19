@@ -5,7 +5,7 @@ info:
   description: Option pricing using advanced models such as Heston, Extended Merton, and Extended CGMY.
   version: 2.0.0
 
-host: ${HOST} 
+host: ${EXTERNAL_HOST} 
 basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
