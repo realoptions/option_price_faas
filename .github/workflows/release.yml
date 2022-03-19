@@ -58,13 +58,13 @@ jobs:
       run: |
         cd terraform
 
-        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) envsubst '${VISIBLE_HOST} ${VERSION_MAJOR} ${HOST}' < ../docs/gcp_auth.yml > final.yml
+        HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst '${VERSION_MAJOR} ${HOST}' < ../docs/gcp_auth.yml > final.yml
         mv -f final.yml ../docs/openapi_gcp.yml
         cat ../docs/openapi_gcp.yml
         cd ..
         npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/openapi_gcp.yml
 
-        VISIBLE_HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst '${VISIBLE_HOST} ${VERSION_MAJOR}' < ./docs/rapidapi_auth.yml > final.yml
+        HOST=$CUSTOM_RAPID_API_DOMAIN VERSION_MAJOR=$MAJOR_VERSION envsubst '${HOST} ${VERSION_MAJOR}' < ./docs/rapidapi_auth.yml > final.yml
         mv -f final.yml ./docs/openapi_rapidapi.yml
         cat ./docs/openapi_rapidapi.yml
         npx swagger-cli bundle -r -o ./docs/openapi_rapidapi.yml -t yaml ./docs/openapi_rapidapi.yml
@@ -75,8 +75,6 @@ jobs:
         npm ci
         npx swagger-cli validate ./docs/openapi_gcp.yml
         npx swagger-cli validate ./docs/openapi_rapidapi.yml
-
-    
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.26.0

@@ -6,19 +6,12 @@ info:
   version: 2.0.0
 
 
-# when deploying this to the developer portal, VISIBLE_HOST 
-# should be the redirected url (minus the https://).  
-# when deploying to gcp, this should be the gateway url
-# HOST should always be the non-gateway url
-host: ${VISIBLE_HOST} 
+host: ${HOST} 
 basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
 produces:
   - application/json
-x-google-backend:
-  address: https://${HOST} 
-  path_translation: APPEND_PATH_TO_ADDRESS
 
 securityDefinitions:
   firebase:

@@ -98,6 +98,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "black_scholes"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74cc72bad3b3a00e3798841436ca4d8095d1566e6a0690fb1f3a3a73d0028938"
+dependencies = [
+ "nrfind",
+ "serde",
+ "special",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -398,7 +409,7 @@ version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1309a9994839204710eddc7a151612aaf2b1bf83e50d3f97005b47727441d74"
 dependencies = [
- "black_scholes",
+ "black_scholes 0.5.0",
  "fang_oost",
  "num",
  "num-complex",
@@ -1058,7 +1069,7 @@ name = "pricer"
 version = "3.1.1"
 dependencies = [
  "approx",
- "black_scholes",
+ "black_scholes 0.7.1",
  "cf_dist_utils",
  "cf_functions",
  "criterion",
