@@ -29,6 +29,7 @@ jobs:
       run: |
         cargo test
     
+    # https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account
     - id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
