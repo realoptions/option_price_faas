@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [nightly-2021-09-20]
+        rust: [nightly]
 
     steps:
     - uses: actions/checkout@v2
@@ -53,7 +53,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: hecrj/setup-rust-action@master
       with:
-        rust-version: nightly-2021-09-20
+        rust-version: nightly
     - name: benchmark
       run: cargo bench | tee output.txt
     - name: Store benchmark result

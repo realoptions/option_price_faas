@@ -24,12 +24,11 @@ impl<'r> FromRequest<'r> for ApiKey {
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("X-RapidAPI-Proxy-Secret").collect();
-        println!("{}", keys[0]);
         match keys.len() {
-            0 => request::Outcome::Failure((Status::BadRequest, ApiKeyError::Missing)),
+            0 => request::Outcome::Error((Status::BadRequest, ApiKeyError::Missing)),
             1 if is_valid(keys[0]) => request::Outcome::Success(ApiKey(keys[0].to_string())),
-            1 => request::Outcome::Failure((Status::Forbidden, ApiKeyError::Invalid)),
-            _ => request::Outcome::Failure((Status::BadRequest, ApiKeyError::BadCount)),
+            1 => request::Outcome::Error((Status::Forbidden, ApiKeyError::Invalid)),
+            _ => request::Outcome::Error((Status::BadRequest, ApiKeyError::BadCount)),
         }
     }
 }

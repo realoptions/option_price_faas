@@ -26,7 +26,7 @@ describe('risk_measures', () => {
             quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/v2/heston/riskmetric`,
+            `http://127.0.0.1:${port}/v2/heston/riskmetric`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -47,7 +47,7 @@ describe('risk_measures', () => {
             cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -0.5 }
         }
         return fetch(
-            `http://localhost:${port}/v2/heston/riskmetric`,
+            `http://127.0.0.1:${port}/v2/heston/riskmetric`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.err).toEqual("Parameter quantile does not exist.")
@@ -62,7 +62,7 @@ describe('risk_measures', () => {
             cf_parameters: { sigma: 0.5, speed: 0.1, v0: 0.2, eta_v: 0.1, rho: -1.5 }, quantile: 0.01
         }
         return fetch(
-            `http://localhost:${port}/v2/heston/riskmetric`,
+            `http://127.0.0.1:${port}/v2/heston/riskmetric`,
             { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.err).toEqual("Parameter rho out of bounds.")
