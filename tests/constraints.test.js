@@ -17,7 +17,7 @@ afterAll(() => {
 describe('risk_measures', () => {
     it('returns constraints for cgmy', () => {
         return fetch(
-            `http://localhost:${port}/v2/cgmy/parameters/parameter_ranges`,
+            `http://127.0.0.1:${port}/v2/cgmy/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.c).toBeTruthy()
@@ -25,7 +25,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for heston', () => {
         return fetch(
-            `http://localhost:${port}/v2/heston/parameters/parameter_ranges`,
+            `http://127.0.0.1:${port}/v2/heston/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return Promise.all([
@@ -39,7 +39,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for merton', () => {
         return fetch(
-            `http://localhost:${port}/v2/merton/parameters/parameter_ranges`,
+            `http://127.0.0.1:${port}/v2/merton/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.mu_l).toBeTruthy()
@@ -48,7 +48,7 @@ describe('risk_measures', () => {
     })
     it('returns constraints for market', () => {
         return fetch(
-            `http://localhost:${port}/v2/market/parameters/parameter_ranges`,
+            `http://127.0.0.1:${port}/v2/market/parameters/parameter_ranges`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' }, }
         ).then(res => res.json()).then(response => {
             return expect(response.asset).toBeTruthy()

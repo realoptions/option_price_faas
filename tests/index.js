@@ -9,7 +9,7 @@ const version = 'v2'
 const server = spawn(location, [], { env: { PORT: port, MAJOR_VERSION: version } })
 const get_price = (port, model) => {
     return fetch(
-        `http://localhost:${port}/v2/${model}/calibrator/call`,
+        `http://127.0.0.1:${port}/v2/${model}/calibrator/call`,
         { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' }, }
     ).then(res => res.json()).then(response => {
         console.log("This is model " + model)
