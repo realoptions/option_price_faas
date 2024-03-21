@@ -31,7 +31,6 @@ resource "google_cloud_run_service" "realoptions" {
     latest_revision = true
   }
   autogenerate_revision_name = true
-  depends_on                 = [google_project_service.cloud_run]
 }
 
 
@@ -56,7 +55,6 @@ resource "google_cloud_run_service" "realoptions_rapidapi" {
     latest_revision = true
   }
   autogenerate_revision_name = true
-  depends_on                 = [google_project_service.cloud_run]
 }
 
 
@@ -82,7 +80,6 @@ resource "google_cloud_run_service" "realoptions_gateway" {
     latest_revision = true
   }
   autogenerate_revision_name = true
-  depends_on                 = [google_project_service.cloud_run]
 }
 
 # Enable public access on endpoints Cloud Run service
