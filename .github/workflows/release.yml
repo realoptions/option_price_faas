@@ -71,6 +71,9 @@ jobs:
         npx swagger-cli bundle -r -o ./docs/openapi_gcp.yml -t yaml ./docs/gcp_auth.yml
         cd terraform/app
         terraform init
+        terraform state rm google_project_service.container_registry
+        terraform state rm google_project_service.artifact_registry
+        terraform state rm google_project_service.cloud_run
         TF_LOG=debug terraform apply -auto-approve -var="custom_gcp_domain=$CUSTOM_GCP_DOMAIN" -var="custom_rapid_api_domain=$CUSTOM_RAPID_API_DOMAIN" -var="version_major=$MAJOR_VERSION" -var="project=$PROJECT_ID" -var="github_sha=$GITHUB_SHA" -var="service_name=$SERVICE_NAME" -var="service_name_auth=$SERVICE_AUTH_NAME"
         cd ../..
         rm ./docs/openapi_gcp.yml
