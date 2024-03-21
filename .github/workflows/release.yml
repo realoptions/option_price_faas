@@ -39,9 +39,9 @@ jobs:
         workload_identity_provider: 'projects/117231459701/locations/global/workloadIdentityPools/github/providers/my-repo'
         service_account: 'ghactions@finside.iam.gserviceaccount.com'
         create_credentials_file: 'true'
-    #- uses: google-github-actions/setup-gcloud@v2.1.0
-    #  with:
-    #    version: '>= 363.0.0'
+    - uses: google-github-actions/setup-gcloud@v2.1.0
+      with:
+        version: '>= 363.0.0' # at least this version is required to work with workload identity
     #    service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS}}
     #    export_default_credentials: true
     #    project_id: ${{ env.PROJECT_ID }}
@@ -52,11 +52,15 @@ jobs:
           terraform init
           TF_LOG=debug terraform apply -auto-approve -var="project=$PROJECT_ID"
           cd ../..
+
+    - name: 'Docker auth'
+      run: |-
+        gcloud auth configure-docker gcr.io
     # Build and push image to Google Container Registry
     # see https://cloud.google.com/container-registry/docs/advanced-authentication#json-key
     - name: Build
       run: |
-        cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
+        # cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA --build-arg BINARY=option_price --build-arg MAJOR_VERSION=$MAJOR_VERSION
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
         docker build . -f docker/option_price.Dockerfile --tag gcr.io/$PROJECT_ID/$SERVICE_AUTH_NAME:$GITHUB_SHA --build-arg BINARY=option_price_auth --build-arg MAJOR_VERSION=$MAJOR_VERSION
