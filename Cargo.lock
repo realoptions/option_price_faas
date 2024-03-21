@@ -882,7 +882,7 @@ checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 
 [[package]]
 name = "pricer"
-version = "3.1.1"
+version = "3.1.2"
 dependencies = [
  "approx",
  "black_scholes 0.7.1",
