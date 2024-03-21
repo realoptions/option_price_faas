@@ -79,7 +79,7 @@ jobs:
       run: |
         cd terraform/app
 
-        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) envsubst '${VISIBLE_HOST} ${VERSION_MAJOR} ${HOST}' < ../docs/gcp_auth.yml > final.yml
+        VISIBLE_HOST=$CUSTOM_GCP_DOMAIN VERSION_MAJOR=$MAJOR_VERSION HOST=$(terraform output realoptions_gateway_url) envsubst '${VISIBLE_HOST} ${VERSION_MAJOR} ${HOST}' < ../../docs/gcp_auth.yml > final.yml
         mv -f final.yml ../../docs/openapi_gcp.yml
         cat ../../docs/openapi_gcp.yml
         cd ../..
