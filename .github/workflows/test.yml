@@ -30,6 +30,9 @@ jobs:
         zip -0 ccov.zip `find . \( -name "${CRATE_NAME}*.gc*" \) -print`
         ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info -t ${{ secrets.CODECOV_TOKEN }}
+    - name: Build docker
+      run: |
+        docker build . -f docker/option_price.Dockerfile
   integrations:
     runs-on: ubuntu-latest
     steps:
