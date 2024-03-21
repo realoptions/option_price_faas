@@ -124,7 +124,7 @@ resource "google_endpoints_service" "openapi_service" {
   service_name = local.realoptions_gateway_url
   project      = var.project
   openapi_config = templatefile(
-    "../docs/openapi_gcp.yml",
+    "../../docs/openapi_gcp.yml",
     {
       VERSION_MAJOR = var.version_major
       HOST          = local.realoptions_url
